@@ -11,8 +11,8 @@ const sequelize = new Sequelize(
   config.database.username,
   config.database.password,
   {
-    host: config.database.host,
-    port: config.database.port,
+    Host: config.database.Host,
+    Port: config.database.Port,
     dialect: "mysql",
     timezone: "+08:00", // 设置东八区时区
     logging: config.env.isDev ? (sql) => logger.debug(sql) : false,

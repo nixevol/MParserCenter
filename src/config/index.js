@@ -32,7 +32,7 @@ const config = {
 
   // 服务器配置
   server: {
-    port: parseInt(getEnvVar("PORT", "9002"))
+    Port: parseInt(getEnvVar("PORT", "9002"))
   },
 
   // 日志配置
@@ -46,8 +46,8 @@ const config = {
 
   // 数据库配置
   database: {
-    host: getEnvVar("DB_HOST", "127.0.0.1"),
-    port: parseInt(getEnvVar("DB_PORT", "3306")),
+    Host: getEnvVar("DB_HOST", "127.0.0.1"),
+    Port: parseInt(getEnvVar("DB_PORT", "3306")),
     username: getEnvVar("DB_USER", "root"),
     password: getEnvVar("DB_PASSWORD"),
     database:
@@ -74,8 +74,8 @@ const config = {
 
   // Clickhouse配置
   clickhouse: {
-    host: getEnvVar("CLICKHOUSE_HOST", "127.0.0.1"),
-    port: parseInt(getEnvVar("CLICKHOUSE_PORT", "9000")),
+    Host: getEnvVar("CLICKHOUSE_HOST", "127.0.0.1"),
+    Port: parseInt(getEnvVar("CLICKHOUSE_PORT", "9000")),
     user: getEnvVar("CLICKHOUSE_USER", "root"),
     password: getEnvVar("CLICKHOUSE_PASSWORD", ""),
     database: getEnvVar("CLICKHOUSE_DATABASE", "MParser")
@@ -83,8 +83,8 @@ const config = {
 
   // Redis配置
   redis: {
-    host: getEnvVar("REDIS_HOST", "127.0.0.1"),
-    port: parseInt(getEnvVar("REDIS_PORT", "6379")),
+    Host: getEnvVar("REDIS_HOST", "127.0.0.1"),
+    Port: parseInt(getEnvVar("REDIS_PORT", "6379")),
     password: getEnvVar("REDIS_PASSWORD", ""),
     db: parseInt(getEnvVar("REDIS_DB", "0")),
     options: {

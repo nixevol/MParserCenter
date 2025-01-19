@@ -20,7 +20,7 @@
  *             schema:
  *               type: object
  *               properties:
- *                 status:
+ *                 Status:
  *                   type: string
  *                   description: 服务状态信息
  *                   example: 程序运行中
@@ -52,7 +52,7 @@
  *             schema:
  *               type: object
  *               properties:
- *                 status:
+ *                 Status:
  *                   type: string
  *                   description: 重启状态信息
  *                   example: 正在重启服务...

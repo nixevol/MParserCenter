@@ -1,4 +1,3 @@
-这是一个基于Nodejs+JavaScript+express的后端程序，在开发过程中需要遵循以下规范和约定：
 # 项目开发规范与约定
 
 ## 目录结构
@@ -108,7 +107,7 @@ DB_DATABASE=mparser       # 数据库名称
 ```
 
 #### ecosystem.config.js 配置项
-
+```javascript
 {
   name: "mparser-center",    // 应用名称
   script: "./src/app.js",    // 启动脚本
@@ -117,7 +116,7 @@ DB_DATABASE=mparser       # 数据库名称
     NODE_ENV: "development"  // 环境变量
   }
 }
-
+```
 
 ## 编码规范
 
@@ -127,7 +126,6 @@ DB_DATABASE=mparser       # 数据库名称
 - 遵循 DRY 原则，避免代码重复
 - 使用驼峰命名法(camelCase)命名变量和函数
 - 使用带有辅助动词的描述性变量名（例如：isLoading, hasError）
-- 使用 yarn 作为包管理工具
 
 ### 文件组织
 1. **控制器（Controllers）**
@@ -189,12 +187,12 @@ DB_DATABASE=mparser       # 数据库名称
 ### 包管理工具
 - 使用 yarn 作为包管理工具
 - 常用命令：
-
+  ```bash
   yarn install     # 安装依赖
   yarn add [包名]  # 添加依赖
   yarn test       # 运行测试
   yarn lint       # 代码检查
-
+  ```
 
 ### 主要依赖
 - express：Web 框架
@@ -222,12 +220,12 @@ DB_DATABASE=mparser       # 数据库名称
 ## 错误处理
 
 ### 统一错误响应格式
-
+```javascript
 {
   code: number,    // 错误码
   message: string  // 错误信息
 }
-
+```
 
 ### 错误处理原则
 - 使用中间件统一处理错误
@@ -255,3 +253,5 @@ DB_DATABASE=mparser       # 数据库名称
 ### 配置文件
 - 配置文件放在 `src/config/` 目录下
 - 按环境分别配置（开发、测试、生产）
+
+

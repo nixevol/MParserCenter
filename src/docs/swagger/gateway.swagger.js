@@ -10,26 +10,26 @@
  *         ID:
  *           type: integer
  *           description: 网关ID
- *         nodeName:
+ *         NodeName:
  *           type: string
  *           minLength: 1
  *           maxLength: 255
  *           description: 网关名称
- *         host:
+ *         Host:
  *           type: string
  *           maxLength: 255
  *           description: 主机地址
- *         port:
+ *         Port:
  *           type: integer
  *           minimum: 1
  *           maximum: 65535
  *           description: 端口号
- *         status:
+ *         Status:
  *           type: integer
  *           enum: [0, 1]
  *           default: 0
  *           description: 状态：0=离线 1=在线
- *         switch:
+ *         Switch:
  *           type: integer
  *           enum: [0, 1]
  *           default: 1
@@ -59,12 +59,12 @@
  *           schema:
  *             type: object
  *             required:
- *               - port
+ *               - Port
  *             properties:
  *               ID:
  *                 type: integer
  *                 description: 网关ID（可选，-1表示新建）
- *               port:
+ *               Port:
  *                 type: integer
  *                 minimum: 1
  *                 maximum: 65535
@@ -134,7 +134,7 @@
  *           type: string
  *         description: 搜索关键字
  *       - in: query
- *         name: status
+ *         name: Status
  *         schema:
  *           type: integer
  *           enum: [0, 1]
@@ -240,17 +240,17 @@
  *           schema:
  *             type: object
  *             properties:
- *               nodeName:
+ *               NodeName:
  *                 type: string
  *                 minLength: 1
  *                 maxLength: 255
  *                 description: 网关名称
- *               port:
+ *               Port:
  *                 type: integer
  *                 minimum: 1
  *                 maximum: 65535
  *                 description: 端口号
- *               switch:
+ *               Switch:
  *                 type: integer
  *                 enum: [0, 1]
  *                 description: 开关状态
@@ -390,10 +390,10 @@
  *                       name:
  *                         type: string
  *                         description: NDS名称
- *                       host:
+ *                       Host:
  *                         type: string
  *                         description: NDS主机地址
- *                       port:
+ *                       Port:
  *                         type: integer
  *                         description: NDS端口号
  *                 message:

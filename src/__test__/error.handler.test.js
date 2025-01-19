@@ -1,4 +1,4 @@
-const { default: errorHandler, getErrorMessage } = require('../middlewares/error.handler');
+const { errorHandler, getErrorMessage, notFoundHandler } = require('../middlewares/error.handler');
 const logger = require('../utils/logger');
 const express = require('express');
 const request = require('supertest');
@@ -23,130 +23,123 @@ describe('错误处理中间件测试', () => {
     process.env.NODE_ENV = 'development';
 
     // 添加测试路由
-    app.get('/error', (req, res, next) => {
+    app.get("/error", (req, res, next) => {
       const error = req.query.error;
       if (error === undefined) {
-        const err = new Error('未知错误');
+        const err = new Error("未知错误");
         err.status = 500;
         next(err);
-      } else if (error === '') {
-        const err = new Error('未知错误');
+      } else if (error === "") {
+        const err = new Error("未知错误");
         err.status = 500;
         next(err);
-      } else if (error === 'undefined' || error === 'null') {
+      } else if (error === "undefined" || error === "null") {
         next(error);
       } else {
         next(error);
       }
     });
 
-    app.get('/error-object', (req, res, next) => {
-      next(new Error('测试错误'));
+    app.get("/error-object", (req, res, next) => {
+      next(new Error("测试错误"));
     });
 
-    app.get('/error-message-object', (req, res, next) => {
-      next({ message: '测试错误' });
+    app.get("/error-message-object", (req, res, next) => {
+      next({ message: "测试错误" });
     });
 
-    app.get('/error-empty-message', (req, res, next) => {
-      next({ message: '' });
+    app.get("/error-empty-message", (req, res, next) => {
+      next({ message: "" });
     });
 
-    app.get('/error-whitespace-message', (req, res, next) => {
-      next({ message: ' \t\n' });
+    app.get("/error-whitespace-message", (req, res, next) => {
+      next({ message: " \t\n" });
     });
 
-    app.get('/error-plain-object', (req, res, next) => {
-      const error = { code: 500, detail: '测试错误' };
+    app.get("/error-plain-object", (req, res, next) => {
+      const error = { code: 500, detail: "测试错误" };
       next(error);
     });
 
-    app.get('/error-empty-object', (req, res, next) => {
+    app.get("/error-empty-object", (req, res, next) => {
       next({});
     });
 
-    app.get('/error-circular-object', (req, res, next) => {
+    app.get("/error-circular-object", (req, res, next) => {
       const circularObj = {};
       circularObj.self = circularObj;
       next(circularObj);
     });
 
-    app.get('/error-dev', (req, res, next) => {
-      next(new Error('测试错误'));
+    app.get("/error-dev", (req, res, next) => {
+      next(new Error("测试错误"));
     });
 
-    app.get('/error-prod', (req, res, next) => {
-      next(new Error('测试错误'));
+    app.get("/error-prod", (req, res, next) => {
+      next(new Error("测试错误"));
     });
 
-    app.get('/error-log', (req, res, next) => {
-      next(new Error('测试错误'));
+    app.get("/error-log", (req, res, next) => {
+      next(new Error("测试错误"));
     });
 
-    app.get('/error-no-stack', (req, res, next) => {
-      next('测试错误');
+    app.get("/error-no-stack", (req, res, next) => {
+      next("测试错误");
     });
 
-    app.get('/error-non-string-message', (req, res, next) => {
-      next({ message: 123 });  // 数字类型的 message
+    app.get("/error-non-string-message", (req, res, next) => {
+      next({ message: 123 }); // 数字类型的 message
     });
 
-    app.get('/error-non-object', (req, res, next) => {
-      next(123);  // 数字类型的错误
+    app.get("/error-non-object", (req, res, next) => {
+      next(123); // 数字类型的错误
     });
 
-    app.get('/error-empty-error-message', (req, res, next) => {
+    app.get("/error-empty-error-message", (req, res, next) => {
       const err = new Error();
-      err.message = '';
+      err.message = "";
       next(err);
     });
 
-    app.get('/error-whitespace-error-message', (req, res, next) => {
-      const err = new Error(' \t\n');
+    app.get("/error-whitespace-error-message", (req, res, next) => {
+      const err = new Error(" \t\n");
       next(err);
     });
 
-    app.get('/error-primitive', (req, res, next) => {
-      next(true);  // 布尔值
+    app.get("/error-primitive", (req, res, next) => {
+      next(true); // 布尔值
     });
 
-    app.get('/error-null-message', (req, res, next) => {
+    app.get("/error-null-message", (req, res, next) => {
       const err = new Error();
       err.message = null;
       next(err);
     });
 
-    app.get('/error-undefined-message', (req, res, next) => {
+    app.get("/error-undefined-message", (req, res, next) => {
       const err = new Error();
       err.message = undefined;
       next(err);
     });
 
-    app.get('/error-undefined', (req, res, next) => {
+    app.get("/error-undefined", (req, res, next) => {
       next(undefined);
     });
 
-    app.get('/error-null', (req, res, next) => {
+    app.get("/error-null", (req, res, next) => {
       next(null);
     });
 
-    app.get('/error-false', (req, res, next) => {
+    app.get("/error-false", (req, res, next) => {
       next(false);
     });
 
-    app.get('/error-zero', (req, res, next) => {
+    app.get("/error-zero", (req, res, next) => {
       next(0);
     });
 
-    // 直接测试 getErrorMessage 函数
-    const { getErrorMessage } = require('../middlewares/error.handler');
-
     // 添加 404 错误处理中间件
-    app.use((req, res, next) => {
-      const error = new Error('Not Found');
-      error.status = 404;
-      next(error);
-    });
+    app.use(notFoundHandler);
 
     // 添加错误处理中间件
     app.use(errorHandler);
@@ -399,17 +392,32 @@ describe('错误处理中间件测试', () => {
         .get('/error-log')
         .expect(500);
 
+      expect(response.body).toHaveProperty('code', 500);
+      expect(response.body).toHaveProperty('message', '测试错误');
       expect(logger.error).toHaveBeenCalledWith('错误:', '测试错误');
       expect(logger.debug).toHaveBeenCalled();
     });
 
-    it('对于非 Error 对象应该记录无堆栈信息', async () => {
+    it('应该处理没有堆栈信息的错误', async () => {
       const response = await request(app)
         .get('/error-no-stack')
         .expect(500);
 
+      expect(response.body).toHaveProperty('code', 500);
+      expect(response.body).toHaveProperty('message', '测试错误');
       expect(logger.error).toHaveBeenCalledWith('错误:', '测试错误');
       expect(logger.debug).toHaveBeenCalledWith('错误堆栈:', '无堆栈信息');
+    });
+  });
+
+  describe('404 错误处理', () => {
+    it('应该处理 404 错误', async () => {
+      const response = await request(app)
+        .get('/not-exist')
+        .expect(404);
+
+      expect(response.body).toHaveProperty('code', 404);
+      expect(response.body).toHaveProperty('message', '未找到请求的资源');
     });
   });
 });

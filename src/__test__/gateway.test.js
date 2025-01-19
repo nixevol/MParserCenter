@@ -26,11 +26,11 @@ describe("Gateway API Tests", () => {
 
     // 创建测试网关
     testGateway = await GatewayList.create({
-      nodeName: "Test Gateway",
-      host: "192.168.1.100",
-      port: 8080,
-      status: 1,
-      switch: 1
+      NodeName: "Test Gateway",
+      Host: "192.168.1.100",
+      Port: 8080,
+      Status: 1,
+      Switch: 1
     });
 
     // 创建测试NDS
@@ -59,8 +59,7 @@ describe("Gateway API Tests", () => {
 
   describe("GET /api/gateway", () => {
     it("应该返回网关列表", async () => {
-      const response = await request(app)
-        .get("/api/gateway");
+      const response = await request(app).get("/api/gateway");
 
       expect(response.body.code).toBe(200);
       expect(response.body.data.list).toHaveLength(1);
@@ -68,26 +67,24 @@ describe("Gateway API Tests", () => {
     });
 
     it("应该根据状态过滤网关", async () => {
-      const response = await request(app)
-        .get("/api/gateway?status=1");
+      const response = await request(app).get("/api/gateway?Status=1");
 
       expect(response.body.code).toBe(200);
       expect(response.body.data.list).toHaveLength(1);
-      expect(response.body.data.list[0].status).toBe(1);
+      expect(response.body.data.list[0].Status).toBe(1);
     });
 
     it("应该支持分页查询", async () => {
       // 创建另一个测试网关
       await GatewayList.create({
-        nodeName: "Test Gateway 2",
-        host: "192.168.1.101",
-        port: 8081,
-        status: 1,
-        switch: 1
+        NodeName: "Test Gateway 2",
+        Host: "192.168.1.101",
+        Port: 8081,
+        Status: 1,
+        Switch: 1
       });
 
-      const response = await request(app)
-        .get("/api/gateway?page=1&pageSize=1");
+      const response = await request(app).get("/api/gateway?page=1&pageSize=1");
 
       expect(response.body.code).toBe(200);
       expect(response.body.data.list).toHaveLength(1);
@@ -99,17 +96,15 @@ describe("Gateway API Tests", () => {
 
   describe("GET /api/gateway/:ID", () => {
     it("应该返回网关详情", async () => {
-      const response = await request(app)
-        .get(`/api/gateway/${testGateway.ID}`);
+      const response = await request(app).get(`/api/gateway/${testGateway.ID}`);
 
       expect(response.body.code).toBe(200);
       expect(response.body.data.ID).toBe(testGateway.ID);
-      expect(response.body.data.nodeName).toBe(testGateway.nodeName);
+      expect(response.body.data.NodeName).toBe(testGateway.NodeName);
     });
 
     it("对于不存在的网关应返回404", async () => {
-      const response = await request(app)
-        .get("/api/gateway/99999");
+      const response = await request(app).get("/api/gateway/99999");
 
       expect(response.body.code).toBe(404);
       expect(response.body.message).toBe("网关不存在");
@@ -119,8 +114,8 @@ describe("Gateway API Tests", () => {
   describe("PUT /api/gateway/:ID", () => {
     it("应该更新网关信息", async () => {
       const updateData = {
-        nodeName: "Updated Gateway",
-        port: 8081
+        NodeName: "Updated Gateway",
+        Port: 8081
       };
 
       const response = await request(app)
@@ -128,19 +123,19 @@ describe("Gateway API Tests", () => {
         .send(updateData);
 
       expect(response.body.code).toBe(200);
-      expect(response.body.data.nodeName).toBe(updateData.nodeName);
-      expect(response.body.data.port).toBe(updateData.port);
+      expect(response.body.data.NodeName).toBe(updateData.NodeName);
+      expect(response.body.data.Port).toBe(updateData.Port);
 
       // 验证数据库中的数据是否更新
       const updatedGateway = await GatewayList.findByPk(testGateway.ID);
-      expect(updatedGateway.nodeName).toBe(updateData.nodeName);
-      expect(updatedGateway.port).toBe(updateData.port);
+      expect(updatedGateway.NodeName).toBe(updateData.NodeName);
+      expect(updatedGateway.Port).toBe(updateData.Port);
     });
 
     it("对于不存在的网关应返回404", async () => {
       const response = await request(app)
         .put("/api/gateway/99999")
-        .send({ nodeName: "Test" });
+        .send({ NodeName: "Test" });
 
       expect(response.body.code).toBe(404);
       expect(response.body.message).toBe("网关不存在");
@@ -149,19 +144,19 @@ describe("Gateway API Tests", () => {
 
   describe("POST /api/gateway/:ID/logout", () => {
     it("应该使网关下线", async () => {
-      const response = await request(app)
-        .post(`/api/gateway/${testGateway.ID}/logout`);
+      const response = await request(app).post(
+        `/api/gateway/${testGateway.ID}/logout`
+      );
 
       expect(response.body.code).toBe(200);
 
       // 验证网关状态是否更新为离线
       const updatedGateway = await GatewayList.findByPk(testGateway.ID);
-      expect(updatedGateway.status).toBe(0);
+      expect(updatedGateway.Status).toBe(0);
     });
 
     it("对于不存在的网关应返回404", async () => {
-      const response = await request(app)
-        .post("/api/gateway/99999/logout");
+      const response = await request(app).post("/api/gateway/99999/logout");
 
       expect(response.body.code).toBe(404);
       expect(response.body.message).toBe("网关不存在");

@@ -6,6 +6,8 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerJSDoc = require('swagger-jsdoc');
 const { testConnection } = require('./database/mysql');
 const logger = require('./utils/logger');
+const { notFoundHandler, errorHandler } = require('./middlewares/error.handler');
+
 
 // 创建 Express 应用
 const app = express();
@@ -53,30 +55,25 @@ app.use("/api/cell", require("./routes/celldata.route"));
 app.use('/api/task', require('./routes/task.route'));
 app.use('/api/nds', require('./routes/nds.route'));
 app.use("/api/gateway", require("./routes/gateway.route"));
+app.use("/api/scanner", require("./routes/scanner.route"));
 
 // 健康检查路由
-app.get('/health', (req, res) => {
-    res.json({
-        status: 'ok',
-        timestamp: Date.now()
-    });
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    timestamp: Date.now()
+  });
 });
 
 // 测试错误路由
-app.get('/error-test', (req, res, next) => {
-    next(new Error('测试错误'));
+app.get("/error-test", (req, res, next) => {
+  next(new Error("测试错误"));
 });
 
 // 404处理
-app.use((req, res) => {
-    res.status(404).json({
-        code: 404,
-        message: '请求的资源不存在'
-    });
-});
+app.use(notFoundHandler);
 
 // 错误处理中间件
-const errorHandler = require('./middlewares/error.handler').default;
 app.use(errorHandler);
 
 // 启动服务器
@@ -84,39 +81,39 @@ const PORT = process.env.PORT || 9002;
 let server = null;
 
 const startServer = async () => {
-    try {
-        // 测试数据库连接
-        await testConnection();
+  try {
+    // 测试数据库连接
+    await testConnection();
 
-        // 启动HTTP服务器
-        return new Promise((resolve, reject) => {
-            server = app.listen(PORT, () => {
-                logger.info(`服务器已启动，监听端口 ${PORT}`);
-                logger.info(`API文档地址: http://localhost:${PORT}/api-docs`);
-                resolve(server);
-            });
+    // 启动HTTP服务器
+    return new Promise((resolve, reject) => {
+      server = app.listen(PORT, () => {
+        logger.info(`服务器已启动，监听端口 ${PORT}`);
+        logger.info(`API文档地址: http://localhost:${PORT}/api-docs`);
+        resolve(server);
+      });
 
-            server.on('error', (err) => {
-                if (err.code === 'EADDRINUSE') {
-                    // 如果端口被占用，尝试使用随机端口
-                    server = app.listen(0, () => {
-                        logger.info(`服务器已启动，监听端口 ${server.address().port}`);
-                        resolve(server);
-                    });
-                } else {
-                    reject(err);
-                }
-            });
-        });
-    } catch (err) {
-        logger.error('服务器启动失败:', err);
-        // 在测试环境中抛出错误，在生产环境中退出进程
-        if (process.env.NODE_ENV === 'test') {
-            throw err;
+      server.on("error", (err) => {
+        if (err.code === "EADDRINUSE") {
+          // 如果端口被占用，尝试使用随机端口
+          server = app.listen(0, () => {
+            logger.info(`服务器已启动，监听端口 ${server.address().port}`);
+            resolve(server);
+          });
         } else {
-            process.exit(1);
+          reject(err);
         }
+      });
+    });
+  } catch (err) {
+    logger.error("服务器启动失败:", err);
+    // 在测试环境中抛出错误，在生产环境中退出进程
+    if (process.env.NODE_ENV === "test") {
+      throw err;
+    } else {
+      process.exit(1);
     }
+  }
 };
 
 const stopServer = async () => {

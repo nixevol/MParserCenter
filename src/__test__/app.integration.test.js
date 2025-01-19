@@ -2,52 +2,72 @@ const request = require('supertest');
 
 // 模拟数据库连接模块
 jest.mock('../database/mysql', () => {
+  const mockDataTypes = {
+    INTEGER: 'INTEGER',
+    STRING: 'STRING',
+    BOOLEAN: 'BOOLEAN',
+    DATE: 'DATE'
+  };
+
   const sequelizeMock = {
     define: jest.fn().mockReturnValue({
       init: jest.fn(),
-      associate: jest.fn()
+      associate: jest.fn(),
+      belongsTo: jest.fn(),
+      hasMany: jest.fn(),
+      belongsToMany: jest.fn(),
+      findOne: jest.fn(),
+      findAll: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      destroy: jest.fn()
     }),
     authenticate: jest.fn().mockResolvedValue(),
     sync: jest.fn().mockResolvedValue(),
-    close: jest.fn().mockResolvedValue()
+    close: jest.fn().mockResolvedValue(),
+    transaction: jest.fn().mockImplementation(fn => fn()),
+    DataTypes: mockDataTypes
   };
   return {
     sequelize: sequelizeMock,
-    testConnection: jest.fn()
+    testConnection: jest.fn().mockResolvedValue()
   };
 });
 
 // 模拟数据库模型
-jest.mock('../models/entity/CellData', () => ({
+const mockModelMethods = {
   init: jest.fn(),
-  associate: jest.fn()
-}));
-jest.mock('../models/entity/TaskList', () => ({
-  init: jest.fn(),
-  associate: jest.fn()
-}));
-jest.mock('../models/entity/EnbTaskList', () => ({
-  init: jest.fn(),
-  associate: jest.fn()
-}));
-jest.mock('../models/entity/NDSList', () => ({
-  init: jest.fn(),
-  associate: jest.fn()
-}));
-jest.mock('../models/entity/GatewayList', () => ({
-  init: jest.fn(),
-  associate: jest.fn()
-}));
-jest.mock('../models/entity/GatewayNDSMap', () => ({
-  init: jest.fn(),
-  associate: jest.fn()
-}));
+  associate: jest.fn(),
+  findOne: jest.fn(),
+  findAll: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  destroy: jest.fn()
+};
+
+jest.mock('../models/entity/CellData', () => mockModelMethods);
+jest.mock('../models/entity/TaskList', () => mockModelMethods);
+jest.mock('../models/entity/EnbTaskList', () => mockModelMethods);
+jest.mock('../models/entity/NDSList', () => mockModelMethods);
+jest.mock('../models/entity/GatewayList', () => mockModelMethods);
+jest.mock('../models/entity/GatewayNDSMap', () => mockModelMethods);
+jest.mock('../models/entity/ScannerList', () => mockModelMethods);
+jest.mock('../models/entity/ScannerNDSMap', () => mockModelMethods);
 
 // 模拟日志模块
 jest.mock('../utils/logger', () => ({
   info: jest.fn(),
   error: jest.fn(),
   debug: jest.fn()
+}));
+
+// 模拟 PM2 模块
+jest.mock('pm2', () => ({
+  connect: (callback) => callback(null),
+  reload: (appName, callback) => {
+    process.nextTick(() => callback(null));
+  },
+  disconnect: () => {}
 }));
 
 const { app, startServer, stopServer } = require('../app');
@@ -98,6 +118,35 @@ describe('应用集成测试', () => {
     it('应该处理数据库连接失败', async () => {
       testConnection.mockRejectedValueOnce(new Error('数据库连接失败'));
       await expect(startServer()).rejects.toThrow('数据库连接失败');
+    });
+  });
+
+  describe('基础路由测试', () => {
+    it('应该返回程序运行状态', async () => {
+      const response = await request(app)
+        .get('/')
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('code', 200);
+      expect(response.body).toHaveProperty('data');
+      expect(response.body.data).toHaveProperty("Status", "程序运行中");
+      expect(response.body).toHaveProperty('message', '操作成功');
+    });
+
+    it('应该处理重启请求', async () => {
+      const response = await request(app)
+        .post('/restart')
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('code', 200);
+      expect(response.body).toHaveProperty('data');
+      expect(response.body.data).toHaveProperty("Status", "正在重启服务...");
+      expect(response.body).toHaveProperty('message', '操作成功');
+
+      // 等待重启操作完成
+      await new Promise(resolve => setTimeout(resolve, 100));
     });
   });
 

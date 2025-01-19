@@ -51,7 +51,7 @@ describe('FTP工具类测试', () => {
     };
   });
 
-  describe('FTP连接测试', () => {
+  describe("FTP连接测试", () => {
     let mockClient;
 
     beforeEach(() => {
@@ -60,17 +60,17 @@ describe('FTP工具类测试', () => {
       ftp.Client.mockImplementation(() => mockClient);
     });
 
-    it('应该成功连接FTP服务器', async () => {
+    it("应该成功连接FTP服务器", async () => {
       mockClient.access.mockResolvedValue();
       mockClient.cd.mockResolvedValue();
 
       const result = await testConnection(mockConfig);
 
       expect(result.isConnected).toBe(true);
-      expect(result.message).toBe('连接成功');
+      expect(result.message).toBe("连接成功");
       expect(mockClient.access).toHaveBeenCalledWith({
-        host: mockConfig.Address,
-        port: mockConfig.Port,
+        Host: mockConfig.Address,
+        Port: mockConfig.Port,
         user: mockConfig.Account,
         password: mockConfig.Password,
         secure: false
@@ -79,57 +79,57 @@ describe('FTP工具类测试', () => {
       expect(mockClient.close).toHaveBeenCalled();
     });
 
-    it('应该处理FTP连接失败', async () => {
-      const error = new Error('连接失败');
+    it("应该处理FTP连接失败", async () => {
+      const error = new Error("连接失败");
       mockClient.access.mockRejectedValue(error);
 
       const result = await testConnection(mockConfig);
 
       expect(result.isConnected).toBe(false);
-      expect(result.message).toBe('连接失败');
+      expect(result.message).toBe("连接失败");
       expect(mockClient.close).toHaveBeenCalled();
     });
 
-    it('应该处理目录访问失败', async () => {
-      const error = new Error('目录不存在');
+    it("应该处理目录访问失败", async () => {
+      const error = new Error("目录不存在");
       mockClient.access.mockResolvedValue();
       mockClient.cd.mockRejectedValue(error);
 
       const result = await testConnection(mockConfig);
 
       expect(result.isConnected).toBe(false);
-      expect(result.message).toBe('目录不存在');
+      expect(result.message).toBe("目录不存在");
       expect(mockClient.close).toHaveBeenCalled();
     });
 
-    it('应该处理FTP配置缺失', async () => {
+    it("应该处理FTP配置缺失", async () => {
       const invalidConfigs = [
-        { ...mockConfig, Address: '' },
+        { ...mockConfig, Address: "" },
         { ...mockConfig, Port: null },
         { ...mockConfig, Account: undefined },
-        { ...mockConfig, Password: '' }
+        { ...mockConfig, Password: "" }
       ];
 
       for (const config of invalidConfigs) {
         const result = await testConnection(config);
         expect(result.isConnected).toBe(false);
-        expect(result.message).toBe('无效的配置');
+        expect(result.message).toBe("无效的配置");
       }
     });
   });
 
-  describe('SFTP连接测试', () => {
+  describe("SFTP连接测试", () => {
     let mockSftpClient;
 
     beforeEach(() => {
-      mockConfig.Type = 'SFTP';
+      mockConfig.Type = "SFTP";
       mockConfig.Port = 22;
       mockSftpClient = new Client();
       // 确保每次测试都使用新的实例
       Client.mockImplementation(() => mockSftpClient);
     });
 
-    it('应该成功连接SFTP服务器', async () => {
+    it("应该成功连接SFTP服务器", async () => {
       // 模拟 SFTP 会话
       mockSftpClient.sftp.mockImplementation((callback) => {
         callback(null, {
@@ -141,59 +141,59 @@ describe('FTP工具类测试', () => {
         const connectPromise = testConnection(mockConfig);
         // 延迟触发连接成功
         setTimeout(() => {
-          mockSftpClient.emit('ready');
+          mockSftpClient.emit("ready");
         }, 100);
         resolve(connectPromise);
       });
 
       expect(result.isConnected).toBe(true);
-      expect(result.message).toBe('连接成功');
+      expect(result.message).toBe("连接成功");
       expect(mockSftpClient.connect).toHaveBeenCalledWith({
-        host: mockConfig.Address,
-        port: mockConfig.Port,
+        Host: mockConfig.Address,
+        Port: mockConfig.Port,
         username: mockConfig.Account,
         password: mockConfig.Password
       });
     }, 15000);
 
-    it('应该处理SFTP连接失败', async () => {
+    it("应该处理SFTP连接失败", async () => {
       const result = await new Promise((resolve) => {
         const connectPromise = testConnection(mockConfig);
         // 延迟触发连接错误
         setTimeout(() => {
-          mockSftpClient.emit('error', new Error('连接失败'));
+          mockSftpClient.emit("error", new Error("连接失败"));
         }, 100);
         resolve(connectPromise);
       });
 
       expect(result.isConnected).toBe(false);
-      expect(result.message).toBe('连接失败');
+      expect(result.message).toBe("连接失败");
     }, 15000);
 
-    it('应该处理SFTP会话创建失败', async () => {
+    it("应该处理SFTP会话创建失败", async () => {
       // 模拟 SFTP 会话创建失败
       mockSftpClient.sftp.mockImplementation((callback) => {
-        callback(new Error('SFTP会话创建失败'));
+        callback(new Error("SFTP会话创建失败"));
       });
 
       const result = await new Promise((resolve) => {
         const connectPromise = testConnection(mockConfig);
         // 延迟触发连接成功
         setTimeout(() => {
-          mockSftpClient.emit('ready');
+          mockSftpClient.emit("ready");
         }, 100);
         resolve(connectPromise);
       });
 
       expect(result.isConnected).toBe(false);
-      expect(result.message).toBe('SFTP会话创建失败');
+      expect(result.message).toBe("SFTP会话创建失败");
     }, 15000);
 
-    it('应该处理目录访问失败', async () => {
+    it("应该处理目录访问失败", async () => {
       // 模拟 SFTP 会话
       mockSftpClient.sftp.mockImplementation((callback) => {
         callback(null, {
-          readdir: (path, cb) => cb(new Error('目录不存在'))
+          readdir: (path, cb) => cb(new Error("目录不存在"))
         });
       });
 
@@ -201,19 +201,19 @@ describe('FTP工具类测试', () => {
         const connectPromise = testConnection(mockConfig);
         // 延迟触发连接成功
         setTimeout(() => {
-          mockSftpClient.emit('ready');
+          mockSftpClient.emit("ready");
         }, 100);
         resolve(connectPromise);
       });
 
       expect(result.isConnected).toBe(false);
-      expect(result.message).toBe('目录不存在');
+      expect(result.message).toBe("目录不存在");
     }, 15000);
 
-    it('应该在没有路径需要检查时返回成功', async () => {
+    it("应该在没有路径需要检查时返回成功", async () => {
       // 清除路径配置
-      mockConfig.MRO_Path = '';
-      mockConfig.MDT_Path = '';
+      mockConfig.MRO_Path = "";
+      mockConfig.MDT_Path = "";
 
       // 模拟 SFTP 会话
       mockSftpClient.sftp.mockImplementation((callback) => {
@@ -226,27 +226,27 @@ describe('FTP工具类测试', () => {
         const connectPromise = testConnection(mockConfig);
         // 延迟触发连接成功
         setTimeout(() => {
-          mockSftpClient.emit('ready');
+          mockSftpClient.emit("ready");
         }, 100);
         resolve(connectPromise);
       });
 
       expect(result.isConnected).toBe(true);
-      expect(result.message).toBe('连接成功');
+      expect(result.message).toBe("连接成功");
     }, 15000);
 
-    it('应该处理SFTP配置缺失', async () => {
+    it("应该处理SFTP配置缺失", async () => {
       const invalidConfigs = [
-        { ...mockConfig, Address: '' },
+        { ...mockConfig, Address: "" },
         { ...mockConfig, Port: null },
         { ...mockConfig, Account: undefined },
-        { ...mockConfig, Password: '' }
+        { ...mockConfig, Password: "" }
       ];
 
       for (const config of invalidConfigs) {
         const result = await testConnection(config);
         expect(result.isConnected).toBe(false);
-        expect(result.message).toBe('无效的配置');
+        expect(result.message).toBe("无效的配置");
       }
     });
   });

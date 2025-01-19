@@ -1,50 +1,12 @@
 /**
  * 网关控制器
  */
-const { Op } = require("sequelize");
 const { success, error } = require("../utils/response");
 const logger = require("../utils/logger");
 const GatewayList = require("../models/entity/GatewayList");
 const NDSList = require("../models/entity/NDSList");
 const GatewayNDSMap = require("../models/entity/GatewayNDSMap");
-const sequelize = require("../database/mysql"); // 引入sequelize实例
-
-/**
- * 获取客户端真实IP
- * @param {Object} req - 请求对象
- * @returns {string} 客户端IP
- */
-const getClientIP = (req) => {
-  // 尝试从X-Forwarded-For获取
-  const forwardedFor = req.headers["x-forwarded-for"];
-  if (forwardedFor) {
-    // 取第一个IP（最原始的客户端IP）
-    const ips = forwardedFor.split(",");
-    const clientIP = ips[0].trim();
-    if (clientIP && clientIP !== "::1" && clientIP !== "127.0.0.1") {
-      return clientIP;
-    }
-  }
-
-  // 尝试从X-Real-IP获取
-  const realIP = req.headers["x-real-ip"];
-  if (realIP && realIP !== "::1" && realIP !== "127.0.0.1") {
-    return realIP;
-  }
-
-  // 从socket获取
-  const ip = req.socket.remoteAddress;
-  if (ip) {
-    // 去除IPv6前缀
-    const realIP = ip.replace(/^::ffff:/, "");
-    if (realIP && realIP === "::1") {
-      return "127.0.0.1";
-    }
-    return realIP;
-  }
-
-  return "127.0.0.1";
-};
+const { getClientIP } = require("../utils/client_host");
 
 /**
  * 网关注册
@@ -54,9 +16,9 @@ const getClientIP = (req) => {
 const registerGateway = async (req, res) => {
   try {
     const clientIp = getClientIP(req);
-    const { port } = req.body;
+    const { Port } = req.body;
 
-    if (!port) {
+    if (!Port) {
       return res.status(400).json(error("端口号是必需的", 400));
     }
 
@@ -99,11 +61,11 @@ const updateGateway = async (req, res) => {
  */
 const getGatewayList = async (req, res) => {
   try {
-    const { page = 1, pageSize = 10, status } = req.query;
+    const { page = 1, pageSize = 10, Status } = req.query;
     const where = {};
 
-    if (status !== undefined) {
-      where.status = parseInt(status);
+    if (Status !== undefined) {
+      where.Status = parseInt(Status);
     }
 
     const { count, rows } = await GatewayList.findAndCountAll({
@@ -178,7 +140,7 @@ const logoutGateway = async (req, res) => {
       return res.status(404).json(error("网关不存在", 404));
     }
 
-    await gateway.update({ status: 0 });
+    await gateway.update({ Status: 0 });
     return res.json(success(gateway));
   } catch (err) {
     logger.error("网关登出失败:", err);
@@ -247,7 +209,7 @@ const updateGatewayNDS = async (req, res) => {
 
     // 创建新的关联
     await Promise.all(
-      ndsIds.map(ndsId =>
+      ndsIds.map((ndsId) =>
         GatewayNDSMap.create({
           gatewayId: gateway.ID,
           ndsId

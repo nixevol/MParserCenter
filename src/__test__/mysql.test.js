@@ -1,16 +1,16 @@
 // 模拟配置
 const mockConfig = {
   database: {
-    database: 'test_db',
-    username: 'test_user',
-    password: 'test_pass',
-    host: 'localhost',
-    port: 3306,
+    database: "test_db",
+    username: "test_user",
+    password: "test_pass",
+    Host: "localhost",
+    Port: 3306,
     pool: {
-      max: '150',
-      min: '5',
-      acquire: '25000',
-      idle: '8000'
+      max: "150",
+      min: "5",
+      acquire: "25000",
+      idle: "8000"
     }
   },
   env: {
@@ -34,33 +34,35 @@ const mockLogger = {
 };
 
 // 创建 Sequelize 构造函数模拟
-const mockSequelizeConstructor = jest.fn().mockImplementation((database, username, password, options) => {
-  expect(database).toBe(mockConfig.database.database);
-  expect(username).toBe(mockConfig.database.username);
-  expect(password).toBe(mockConfig.database.password);
-  expect(options).toMatchObject({
-    host: mockConfig.database.host,
-    port: mockConfig.database.port,
-    dialect: 'mysql',
-    timezone: '+08:00',
-    pool: {
-      max: parseInt(((mockConfig.database.pool || {}).max) || "200"),
-      min: parseInt(((mockConfig.database.pool || {}).min) || "0"),
-      acquire: parseInt(((mockConfig.database.pool || {}).acquire) || "30000"),
-      idle: parseInt(((mockConfig.database.pool || {}).idle) || "10000")
-    },
-    retry: {
-      max: 3,
-      timeout: 3000
-    }
-  });
-  
-  if (options.logging && typeof options.logging === 'function') {
-    options.logging('test sql');
-  }
+const mockSequelizeConstructor = jest
+  .fn()
+  .mockImplementation((database, username, password, options) => {
+    expect(database).toBe(mockConfig.database.database);
+    expect(username).toBe(mockConfig.database.username);
+    expect(password).toBe(mockConfig.database.password);
+    expect(options).toMatchObject({
+      Host: mockConfig.database.Host,
+      Port: mockConfig.database.Port,
+      dialect: "mysql",
+      timezone: "+08:00",
+      pool: {
+        max: parseInt((mockConfig.database.pool || {}).max || "200"),
+        min: parseInt((mockConfig.database.pool || {}).min || "0"),
+        acquire: parseInt((mockConfig.database.pool || {}).acquire || "30000"),
+        idle: parseInt((mockConfig.database.pool || {}).idle || "10000")
+      },
+      retry: {
+        max: 3,
+        timeout: 3000
+      }
+    });
 
-  return mockSequelizeInstance;
-});
+    if (options.logging && typeof options.logging === "function") {
+      options.logging("test sql");
+    }
+
+    return mockSequelizeInstance;
+  });
 
 // 模拟依赖
 jest.mock('../config', () => mockConfig);

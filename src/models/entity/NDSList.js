@@ -4,6 +4,7 @@
 const { DataTypes } = require("sequelize");
 const { sequelize } = require("../../database/mysql");
 const GatewayNDSMap = require('./GatewayNDSMap'); // 引入GatewayNDSMap模型
+const ScannerNDSMap = require('./ScannerNDSMap');  // 引入ScannerNDSMap模型
 
 const NDSList = sequelize.define(
   "NDSList",
@@ -97,9 +98,10 @@ const NDSList = sequelize.define(
 
 // 添加与GatewayNDSMap的关联
 NDSList.hasMany(GatewayNDSMap, {
-  foreignKey: 'ndsId',
-  sourceKey: 'ID',
-  as: 'GatewayNDSMaps',  // 添加关联别名
+  foreignKey: "ndsId",
+  sourceKey: "ID",
+  as: "GatewayNDSMaps"
 });
+
 
 module.exports = NDSList;

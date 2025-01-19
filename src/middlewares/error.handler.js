@@ -38,6 +38,16 @@ const getErrorMessage = (err) => {
 };
 
 /**
+ * 404 错误处理中间件
+ */
+const notFoundHandler = (req, res, next) => {
+  const response = errorResponse('未找到请求的资源', 404);
+  res.status(404)
+    .header('Content-Type', 'application/json')
+    .json(response);
+};
+
+/**
  * 错误处理中间件
  */
 const errorHandler = (err, req, res, next) => {
@@ -54,11 +64,15 @@ const errorHandler = (err, req, res, next) => {
     : originalMessage;
 
   // 返回错误响应
-  const response = errorResponse(message);
-  res.status(err.status || 500).json(response);
+  const status = err.status || 500;
+  const response = errorResponse(message, status);
+  res.status(status)
+    .header('Content-Type', 'application/json')
+    .json(response);
 };
 
 module.exports = {
   getErrorMessage,
-  default: errorHandler
+  notFoundHandler,
+  errorHandler
 };

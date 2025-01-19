@@ -11,8 +11,14 @@ const logger = require('./logger');
  * @returns {Promise<Object>} 测试结果
  */
 const testFTPConnection = async (config) => {
-  if (!config || !config.Address || !config.Port || !config.Account || !config.Password) {
-    return { isConnected: false, message: '无效的配置' };
+  if (
+    !config ||
+    !config.Address ||
+    !config.Port ||
+    !config.Account ||
+    !config.Password
+  ) {
+    return { isConnected: false, message: "无效的配置" };
   }
 
   const client = new ftp.Client();
@@ -20,8 +26,8 @@ const testFTPConnection = async (config) => {
 
   try {
     await client.access({
-      host: config.Address,
-      port: config.Port,
+      Host: config.Address,
+      Port: config.Port,
       user: config.Account,
       password: config.Password,
       secure: false
@@ -33,9 +39,9 @@ const testFTPConnection = async (config) => {
       await client.cd(path);
     }
 
-    return { isConnected: true, message: '连接成功' };
+    return { isConnected: true, message: "连接成功" };
   } catch (err) {
-    logger.error('FTP连接测试失败:', err);
+    logger.error("FTP连接测试失败:", err);
     return { isConnected: false, message: err.message };
   } finally {
     client.close();
@@ -48,14 +54,20 @@ const testFTPConnection = async (config) => {
  * @returns {Promise<Object>} 测试结果
  */
 const testSFTPConnection = async (config) => {
-  if (!config || !config.Address || !config.Port || !config.Account || !config.Password) {
-    return { isConnected: false, message: '无效的配置' };
+  if (
+    !config ||
+    !config.Address ||
+    !config.Port ||
+    !config.Account ||
+    !config.Password
+  ) {
+    return { isConnected: false, message: "无效的配置" };
   }
 
   return new Promise((resolve) => {
     const conn = new Client();
 
-    conn.on('ready', async () => {
+    conn.on("ready", async () => {
       conn.sftp((err, sftp) => {
         if (err) {
           conn.end();
@@ -68,10 +80,10 @@ const testSFTPConnection = async (config) => {
 
         if (paths.length === 0) {
           conn.end();
-          return resolve({ isConnected: true, message: '连接成功' });
+          return resolve({ isConnected: true, message: "连接成功" });
         }
 
-        paths.forEach(path => {
+        paths.forEach((path) => {
           sftp.readdir(path, (err) => {
             checkedPaths++;
             if (checkedPaths === paths.length) {
@@ -79,7 +91,7 @@ const testSFTPConnection = async (config) => {
               if (err) {
                 resolve({ isConnected: false, message: err.message });
               } else {
-                resolve({ isConnected: true, message: '连接成功' });
+                resolve({ isConnected: true, message: "连接成功" });
               }
             }
           });
@@ -87,14 +99,14 @@ const testSFTPConnection = async (config) => {
       });
     });
 
-    conn.on('error', (err) => {
-      logger.error('SFTP连接测试失败:', err);
+    conn.on("error", (err) => {
+      logger.error("SFTP连接测试失败:", err);
       resolve({ isConnected: false, message: err.message });
     });
 
     conn.connect({
-      host: config.Address,
-      port: config.Port,
+      Host: config.Address,
+      Port: config.Port,
       username: config.Account,
       password: config.Password
     });
