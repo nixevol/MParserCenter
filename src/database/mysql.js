@@ -62,7 +62,7 @@ const testConnection = async () => {
   } catch (error) {
     logger.error('数据库连接失败:', error);
     throw new Error("连接失败");
-  }
+  } 
 };
 
 module.exports = {

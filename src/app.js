@@ -8,7 +8,6 @@ const { testConnection } = require('./database/mysql');
 const logger = require('./utils/logger');
 const { notFoundHandler, errorHandler } = require('./middlewares/error.handler');
 
-
 // 创建 Express 应用
 const app = express();
 
@@ -49,13 +48,23 @@ const swaggerOptions = {
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// 路由配置
-app.use("/", require("./routes/app.route"));
-app.use("/api/cell", require("./routes/celldata.route"));
-app.use('/api/task', require('./routes/task.route'));
-app.use('/api/nds', require('./routes/nds.route'));
-app.use("/api/gateway", require("./routes/gateway.route"));
-app.use("/api/scanner", require("./routes/scanner.route"));
+// 导入路由
+const appRoutes = require('./routes/app.route');
+const celldataRoutes = require('./routes/celldata.route');
+const gatewayRoutes = require('./routes/gateway.route');
+const ndsRoutes = require('./routes/nds.route');
+const parserRoutes = require('./routes/parser.route');
+const scannerRoutes = require('./routes/scanner.route');
+const taskRoutes = require('./routes/task.route');
+
+// 注册路由
+app.use('/api', appRoutes);
+app.use('/api/cell', celldataRoutes);
+app.use('/api/task', taskRoutes);
+app.use('/api/nds', ndsRoutes);
+app.use('/api/gateway', gatewayRoutes);
+app.use('/api/scanner', scannerRoutes);
+app.use('/api/parser', parserRoutes);
 
 // 健康检查路由
 app.get("/health", (req, res) => {
@@ -70,10 +79,8 @@ app.get("/error-test", (req, res, next) => {
   next(new Error("测试错误"));
 });
 
-// 404处理
-app.use(notFoundHandler);
-
 // 错误处理中间件
+app.use(notFoundHandler);
 app.use(errorHandler);
 
 // 启动服务器
@@ -132,8 +139,5 @@ if (require.main === module) {
     startServer();
 }
 
-module.exports = {
-    app,
-    startServer,
-    stopServer
-};
+// 导出app实例供测试使用
+module.exports = app;
