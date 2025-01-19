@@ -57,14 +57,14 @@ const registerGateway = async (req, res) => {
     const { port } = req.body;
 
     if (!port) {
-      return res.status(400).json(error("端口号是必需的"));
+      return res.status(400).json(error("端口号是必需的", 400));
     }
 
     const gateway = await GatewayList.registerGateway(req.body, clientIp);
     return res.json(success(gateway));
   } catch (err) {
     logger.error("网关注册失败:", err);
-    return res.status(500).json(error(err.message));
+    return res.status(500).json(error(err.message, 500));
   }
 };
 
@@ -83,14 +83,14 @@ const updateGateway = async (req, res) => {
 
     const gateway = await GatewayList.findByPk(ID);
     if (!gateway) {
-      return res.status(404).json(error("网关不存在"));
+      return res.status(404).json(error("网关不存在", 404));
     }
 
     await gateway.update(updateData);
     return res.json(success(gateway));
   } catch (err) {
     logger.error("更新网关配置失败:", err);
-    return res.status(500).json(error(err.message));
+    return res.status(500).json(error(err.message, 500));
   }
 };
 
@@ -108,7 +108,7 @@ const getGatewayList = async (req, res) => {
 
     const { count, rows } = await GatewayList.findAndCountAll({
       where,
-      offset: (page - 1) * pageSize,
+      offset: (parseInt(page) - 1) * parseInt(pageSize),
       limit: parseInt(pageSize),
       order: [["ID", "DESC"]]
     });
@@ -123,7 +123,7 @@ const getGatewayList = async (req, res) => {
     );
   } catch (err) {
     logger.error("获取网关列表失败:", err);
-    return res.status(500).json(error(err.message));
+    return res.status(500).json(error(err.message, 500));
   }
 };
 
@@ -136,13 +136,13 @@ const getGateway = async (req, res) => {
     const gateway = await GatewayList.findByPk(ID);
 
     if (!gateway) {
-      return res.status(404).json(error("网关不存在"));
+      return res.status(404).json(error("网关不存在", 404));
     }
 
     return res.json(success(gateway));
   } catch (err) {
     logger.error("获取网关详情失败:", err);
-    return res.status(500).json(error(err.message));
+    return res.status(500).json(error(err.message, 500));
   }
 };
 
@@ -155,14 +155,14 @@ const deleteGateway = async (req, res) => {
     const gateway = await GatewayList.findByPk(ID);
 
     if (!gateway) {
-      return res.status(404).json(error("网关不存在"));
+      return res.status(404).json(error("网关不存在", 404));
     }
 
     await gateway.destroy();
     return res.json(success(null, "删除成功"));
   } catch (err) {
     logger.error("删除网关失败:", err);
-    return res.status(500).json(error(err.message));
+    return res.status(500).json(error(err.message, 500));
   }
 };
 
@@ -172,17 +172,17 @@ const deleteGateway = async (req, res) => {
 const logoutGateway = async (req, res) => {
   try {
     const { ID } = req.params;
-    const gateway = await GatewayList.findByPk(ID);
 
+    const gateway = await GatewayList.findByPk(ID);
     if (!gateway) {
-      return res.status(404).json(error("网关不存在"));
+      return res.status(404).json(error("网关不存在", 404));
     }
 
     await gateway.update({ status: 0 });
-    return res.json(success(null, "登出成功"));
+    return res.json(success(gateway));
   } catch (err) {
     logger.error("网关登出失败:", err);
-    return res.status(500).json(error(err.message));
+    return res.status(500).json(error(err.message, 500));
   }
 };
 
@@ -193,27 +193,26 @@ const getGatewayNDSList = async (req, res) => {
   try {
     const { ID } = req.params;
 
-    // 查找网关
     const gateway = await GatewayList.findByPk(ID);
     if (!gateway) {
-      return res.status(404).json(error("网关不存在"));
+      return res.status(404).json(error("网关不存在", 404));
     }
 
     // 查找关联的NDS列表
     const ndsList = await NDSList.findAll({
-      include: [{
-        model: GatewayNDSMap,
-        where: { gatewayId: gateway.ID },
-        required: true,
-        attributes: [],
-        as: 'GatewayNDSMaps'  // 添加关联别名
-      }]
+      include: [
+        {
+          model: GatewayNDSMap,
+          as: "GatewayNDSMaps",
+          where: { gatewayId: gateway.ID }
+        }
+      ]
     });
 
     return res.json(success(ndsList));
   } catch (err) {
     logger.error("获取网关关联的NDS列表失败:", err);
-    return res.status(500).json(error(err.message));
+    return res.status(500).json(error(err.message, 500));
   }
 };
 
@@ -225,14 +224,9 @@ const updateGatewayNDS = async (req, res) => {
     const { ID } = req.params;
     const { ndsIds } = req.body;
 
-    if (!Array.isArray(ndsIds)) {
-      return res.status(400).json(error("ndsIds必须是数组"));
-    }
-
-    // 查找网关
     const gateway = await GatewayList.findByPk(ID);
     if (!gateway) {
-      return res.status(404).json(error("网关不存在"));
+      return res.status(404).json(error("网关不存在", 404));
     }
 
     // 验证所有NDS是否存在
@@ -243,41 +237,39 @@ const updateGatewayNDS = async (req, res) => {
     });
 
     if (ndsList.length !== ndsIds.length) {
-      return res.status(400).json(error("存在无效的NDS ID"));
+      return res.status(400).json(error("部分NDS不存在", 400));
     }
 
-    // 使用事务确保操作的原子性
-    await sequelize.sequelize.transaction(async (t) => {
-      // 删除旧的关联关系
-      await GatewayNDSMap.destroy({
-        where: { gatewayId: gateway.ID },
-        transaction: t
-      });
+    // 删除原有关联
+    await GatewayNDSMap.destroy({
+      where: { gatewayId: gateway.ID }
+    });
 
-      // 创建新的关联关系
-      if (ndsIds.length > 0) {
-        const mappings = ndsIds.map((ndsId) => ({
+    // 创建新的关联
+    await Promise.all(
+      ndsIds.map(ndsId =>
+        GatewayNDSMap.create({
           gatewayId: gateway.ID,
           ndsId
-        }));
-        await GatewayNDSMap.bulkCreate(mappings, { transaction: t });
-      }
-    });
+        })
+      )
+    );
 
     // 获取更新后的关联列表
     const updatedNDSList = await NDSList.findAll({
-      include: [{
-        model: GatewayNDSMap,
-        where: { gatewayId: gateway.ID },
-        required: true,
-        attributes: []
-      }]
+      include: [
+        {
+          model: GatewayNDSMap,
+          as: "GatewayNDSMaps",
+          where: { gatewayId: gateway.ID }
+        }
+      ]
     });
 
     return res.json(success(updatedNDSList));
   } catch (err) {
     logger.error("更新网关关联的NDS失败:", err);
-    return res.status(500).json(error(err.message));
+    return res.status(500).json(error(err.message, 500));
   }
 };
 
@@ -291,12 +283,24 @@ const addGatewayNDS = async (req, res) => {
 
     const gateway = await GatewayList.findByPk(ID);
     if (!gateway) {
-      return res.status(404).json(error("网关不存在"));
+      return res.status(404).json(error("网关不存在", 404));
     }
 
     const nds = await NDSList.findByPk(ndsId);
     if (!nds) {
-      return res.status(404).json(error("NDS不存在"));
+      return res.status(404).json(error("NDS不存在", 404));
+    }
+
+    // 检查关联是否已存在
+    const existingAssociation = await GatewayNDSMap.findOne({
+      where: {
+        gatewayId: ID,
+        ndsId
+      }
+    });
+
+    if (existingAssociation) {
+      return res.status(400).json(error("关联已存在", 400));
     }
 
     // 创建关联关系
@@ -307,11 +311,8 @@ const addGatewayNDS = async (req, res) => {
 
     return res.json(success(null, "关联添加成功"));
   } catch (err) {
-    if (err.name === "SequelizeUniqueConstraintError") {
-      return res.status(400).json(error("该关联已存在"));
-    }
     logger.error("添加网关关联的NDS失败:", err);
-    return res.status(500).json(error(err.message));
+    return res.status(500).json(error(err.message, 500));
   }
 };
 
@@ -324,12 +325,12 @@ const removeGatewayNDS = async (req, res) => {
 
     const gateway = await GatewayList.findByPk(ID);
     if (!gateway) {
-      return res.status(404).json(error("网关不存在"));
+      return res.status(404).json(error("网关不存在", 404));
     }
 
     const nds = await NDSList.findByPk(ndsId);
     if (!nds) {
-      return res.status(404).json(error("NDS不存在"));
+      return res.status(404).json(error("NDS不存在", 404));
     }
 
     // 删除关联关系
@@ -341,13 +342,13 @@ const removeGatewayNDS = async (req, res) => {
     });
 
     if (!deleted) {
-      return res.status(404).json(error("关联不存在"));
+      return res.status(404).json(error("关联不存在", 404));
     }
 
     return res.json(success(null, "关联删除成功"));
   } catch (err) {
     logger.error("删除网关关联的NDS失败:", err);
-    return res.status(500).json(error(err.message));
+    return res.status(500).json(error(err.message, 500));
   }
 };
 

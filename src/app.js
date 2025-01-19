@@ -62,15 +62,22 @@ app.get('/health', (req, res) => {
     });
 });
 
-// 错误处理中间件
-app.use((err, req, res, next) => {
-    logger.error('未捕获的错误:', err);
-    res.status(500).json({
-        code: 500,
-        message: '服务器内部错误',
-        timestamp: Date.now()
+// 测试错误路由
+app.get('/error-test', (req, res, next) => {
+    next(new Error('测试错误'));
+});
+
+// 404处理
+app.use((req, res) => {
+    res.status(404).json({
+        code: 404,
+        message: '请求的资源不存在'
     });
 });
+
+// 错误处理中间件
+const errorHandler = require('./middlewares/error.handler').default;
+app.use(errorHandler);
 
 // 启动服务器
 const PORT = process.env.PORT || 9002;
@@ -103,7 +110,12 @@ const startServer = async () => {
         });
     } catch (err) {
         logger.error('服务器启动失败:', err);
-        process.exit(1);
+        // 在测试环境中抛出错误，在生产环境中退出进程
+        if (process.env.NODE_ENV === 'test') {
+            throw err;
+        } else {
+            process.exit(1);
+        }
     }
 };
 

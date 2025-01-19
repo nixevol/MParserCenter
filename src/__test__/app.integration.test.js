@@ -57,12 +57,15 @@ describe('应用集成测试', () => {
   beforeEach(() => {
     // 清除所有模拟的调用记录
     jest.clearAllMocks();
+    // 设置测试环境
+    process.env.NODE_ENV = 'test';
     // 设置测试环境的端口
     process.env.PORT = '0'; // 使用随机可用端口
   });
 
   afterEach(async () => {
-    // 恢复默认端口
+    // 恢复环境变量
+    delete process.env.NODE_ENV;
     delete process.env.PORT;
     // 每个测试后关闭服务器
     await stopServer();

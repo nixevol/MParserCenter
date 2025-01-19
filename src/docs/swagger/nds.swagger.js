@@ -15,6 +15,7 @@
  *           description: NDS ID
  *         Name:
  *           type: string
+ *           minLength: 1
  *           maxLength: 150
  *           description: NDS服务器名称
  *         Address:
@@ -23,6 +24,8 @@
  *           description: NDS服务器地址
  *         Port:
  *           type: integer
+ *           minimum: 1
+ *           maximum: 65535
  *           default: 2121
  *           description: NDS服务器端口
  *         Protocol:
@@ -32,10 +35,12 @@
  *           description: 连接协议
  *         Account:
  *           type: string
+ *           minLength: 1
  *           maxLength: 100
  *           description: 账号
  *         Password:
  *           type: string
+ *           minLength: 1
  *           maxLength: 100
  *           description: 密码
  *         MRO_Path:
@@ -74,12 +79,15 @@
  *         name: page
  *         schema:
  *           type: integer
+ *           minimum: 1
  *           default: 1
  *         description: 页码
  *       - in: query
  *         name: pageSize
  *         schema:
  *           type: integer
+ *           minimum: 1
+ *           maximum: 100
  *           default: 10
  *         description: 每页数量
  *       - in: query
@@ -108,7 +116,10 @@
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/NDSList'
- *
+ *                 message:
+ *                   type: string
+ *                   example: 操作成功
+ * 
  * @swagger
  * /api/nds/{id}:
  *   get:
@@ -134,6 +145,15 @@
  *                   example: 200
  *                 data:
  *                   $ref: '#/components/schemas/NDSList'
+ *                 message:
+ *                   type: string
+ *                   example: 操作成功
+ *       404:
+ *         description: 服务器不存在
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  * 
  * @swagger
  * /api/nds/add:
@@ -158,11 +178,16 @@
  *                   type: integer
  *                   example: 200
  *                 data:
- *                   type: object
- *                   properties:
- *                     ID:
- *                       type: integer
- *                       description: 新创建的NDS ID
+ *                   $ref: '#/components/schemas/NDSList'
+ *                 message:
+ *                   type: string
+ *                   example: 添加成功
+ *       400:
+ *         description: 请求参数错误
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  * 
  * @swagger
  * /api/nds/{id}:
@@ -185,6 +210,25 @@
  *     responses:
  *       200:
  *         description: NDS服务器更新成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 data:
+ *                   $ref: '#/components/schemas/NDSList'
+ *                 message:
+ *                   type: string
+ *                   example: 更新成功
+ *       404:
+ *         description: 服务器不存在
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *   delete:
  *     tags: [NDS服务器管理]
  *     summary: 删除NDS服务器
@@ -198,6 +242,23 @@
  *     responses:
  *       200:
  *         description: NDS服务器删除成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: 删除成功
+ *       404:
+ *         description: 服务器不存在
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  * 
  * @swagger
  * /api/nds/{id}/test:
@@ -231,4 +292,13 @@
  *                     message:
  *                       type: string
  *                       description: 连接结果信息
+ *                 message:
+ *                   type: string
+ *                   example: 测试完成
+ *       404:
+ *         description: 服务器不存在
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */

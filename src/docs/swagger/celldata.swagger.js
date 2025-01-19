@@ -51,7 +51,16 @@
  *           type: number
  *           format: float
  *           description: 纬度
- *           example: 22.543211
+ *           example: 22.523456
+ *     Error:
+ *       type: object
+ *       properties:
+ *         code:
+ *           type: integer
+ *           description: 错误码
+ *         message:
+ *           type: string
+ *           description: 错误信息
  * 
  * @swagger
  * /api/cell/list:
@@ -64,19 +73,22 @@
  *         name: page
  *         schema:
  *           type: integer
+ *           minimum: 1
  *           default: 1
  *         description: 页码
  *       - in: query
  *         name: pageSize
  *         schema:
  *           type: integer
+ *           minimum: 1
+ *           maximum: 100
  *           default: 50
  *         description: 每页数量
  *       - in: query
  *         name: field
  *         schema:
  *           type: string
- *           enum: [CGI, eNBName, userLabel, all]
+ *           enum: [all, CGI, eNBName, userLabel]
  *         description: 搜索字段
  *       - in: query
  *         name: keyword
@@ -85,7 +97,7 @@
  *         description: 搜索关键词
  *     responses:
  *       200:
- *         description: 成功获取列表
+ *         description: 获取成功
  *         content:
  *           application/json:
  *             schema:
@@ -99,11 +111,14 @@
  *                   properties:
  *                     total:
  *                       type: integer
- *                       example: 100
+ *                       description: 总记录数
  *                     list:
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/CellData'
+ *                 message:
+ *                   type: string
+ *                   example: 操作成功
  * 
  * @swagger
  * /api/cell/add:
@@ -128,9 +143,17 @@
  *                 code:
  *                   type: integer
  *                   example: 200
+ *                 data:
+ *                   $ref: '#/components/schemas/CellData'
  *                 message:
  *                   type: string
- *                   example: '新增成功'
+ *                   example: 添加成功
+ *       400:
+ *         description: 请求参数错误
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  * 
  * @swagger
  * /api/cell/update:
@@ -155,9 +178,17 @@
  *                 code:
  *                   type: integer
  *                   example: 200
+ *                 data:
+ *                   $ref: '#/components/schemas/CellData'
  *                 message:
  *                   type: string
- *                   example: '更新成功'
+ *                   example: 更新成功
+ *       404:
+ *         description: 小区不存在
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  * 
  * @swagger
  * /api/cell/remove/{cgi}:
@@ -185,7 +216,13 @@
  *                   example: 200
  *                 message:
  *                   type: string
- *                   example: '删除成功'
+ *                   example: 删除成功
+ *       404:
+ *         description: 小区不存在
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  * 
  * @swagger
  * /api/cell/batch-delete:
@@ -199,12 +236,14 @@
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - cgis
  *             properties:
  *               cgis:
  *                 type: array
  *                 items:
  *                   type: string
- *                 example: ['460-00-1234-5678', '460-00-1234-5679']
+ *                 description: 小区CGI列表
  *     responses:
  *       200:
  *         description: 批量删除成功
@@ -216,12 +255,9 @@
  *                 code:
  *                   type: integer
  *                   example: 200
- *                 data:
- *                   type: object
- *                   properties:
- *                     deletedCount:
- *                       type: integer
- *                       example: 2
+ *                 message:
+ *                   type: string
+ *                   example: 批量删除成功
  * 
  * @swagger
  * /api/cell/check/{cgi}:
@@ -248,11 +284,11 @@
  *                   type: integer
  *                   example: 200
  *                 data:
- *                   type: object
- *                   properties:
- *                     exists:
- *                       type: boolean
- *                       example: true
+ *                   type: boolean
+ *                   description: 是否存在
+ *                 message:
+ *                   type: string
+ *                   example: 操作成功
  * 
  * @swagger
  * /api/cell/upload:
@@ -266,10 +302,13 @@
  *         multipart/form-data:
  *           schema:
  *             type: object
+ *             required:
+ *               - file
  *             properties:
  *               file:
  *                 type: string
  *                 format: binary
+ *                 description: Excel文件
  *     responses:
  *       200:
  *         description: 导入成功
@@ -286,31 +325,27 @@
  *                   properties:
  *                     total:
  *                       type: integer
- *                       example: 100
- *                     inserted:
- *                       type: integer
- *                       example: 80
- *                     updated:
- *                       type: integer
- *                       example: 20
- *                     unchanged:
- *                       type: integer
- *                       example: 0
- *                     failed:
- *                       type: integer
- *                       example: 0
+ *                       description: 导入总数
  *                     success:
  *                       type: integer
- *                       example: 100
- *                     successRate:
- *                       type: string
- *                       example: '100%'
+ *                       description: 成功数量
+ *                     failed:
+ *                       type: integer
+ *                       description: 失败数量
+ *                     errors:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       description: 错误信息列表
+ *                 message:
+ *                   type: string
+ *                   example: 导入成功
  * 
  * @swagger
  * /api/cell/export:
  *   get:
  *     summary: 导出Excel文件
- *     description: 导出小区数据到Excel文件
+ *     description: 导出所有小区数据到Excel文件
  *     tags: [小区管理]
  *     responses:
  *       200:
@@ -320,4 +355,10 @@
  *             schema:
  *               type: string
  *               format: binary
+ *       500:
+ *         description: 导出失败
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */

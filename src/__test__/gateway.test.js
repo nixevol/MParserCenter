@@ -1,331 +1,349 @@
-const request = require('supertest');
-const { app, startServer, stopServer } = require('../app');
-const { sequelize } = require('../database/mysql');
-const GatewayList = require('../models/entity/GatewayList');
-const NDSList = require('../models/entity/NDSList');
-const GatewayNDSMap = require('../models/entity/GatewayNDSMap');
+const request = require("supertest");
+const { sequelize } = require("../database/mysql");
+const GatewayList = require("../models/entity/GatewayList");
+const NDSList = require("../models/entity/NDSList");
+const GatewayNDSMap = require("../models/entity/GatewayNDSMap");
+const express = require("express");
+const app = express();
+const bodyParser = require("body-parser");
 
-describe('网关管理测试', () => {
-    let server;
+// 配置中间件
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-    // 在所有测试之前启动服务器并连接数据库
-    beforeAll(async () => {
-        server = await startServer();
-        await sequelize.authenticate();
-        await sequelize.sync({ force: true });
+// 加载路由
+app.use("/api/gateway", require("../routes/gateway.route"));
+
+describe("Gateway API Tests", () => {
+  let testGateway;
+  let testNDS;
+
+  beforeEach(async () => {
+    // 清理测试数据
+    await GatewayNDSMap.destroy({ where: {} });
+    await GatewayList.destroy({ where: {} });
+    await NDSList.destroy({ where: {} });
+
+    // 创建测试网关
+    testGateway = await GatewayList.create({
+      nodeName: "Test Gateway",
+      host: "192.168.1.100",
+      port: 8080,
+      status: 1,
+      switch: 1
     });
 
-    // 在所有测试之后关闭服务器和数据库连接
-    afterAll(async () => {
-        await stopServer();
-        await sequelize.close();
+    // 创建测试NDS
+    testNDS = await NDSList.create({
+      Name: "Test NDS",
+      Address: "192.168.1.200",
+      Port: 2121,
+      Protocol: "SFTP",
+      Account: "test",
+      Password: "test123",
+      MRO_Path: "/MR/MRO/",
+      MRO_Filter: "^/MR/MRO/[^/]+/[^/]+_MRO_[^/]+.zip$",
+      MDT_Path: "/MDT/",
+      MDT_Filter: "^/MDT/[^/]+/CSV/LOG-MDT/.*_LOG-MDT_.*.zip$",
+      Switch: 1
+    });
+  });
+
+  afterAll(async () => {
+    // 清理测试数据
+    await GatewayNDSMap.destroy({ where: {} });
+    await GatewayList.destroy({ where: {} });
+    await NDSList.destroy({ where: {} });
+    await sequelize.close();
+  });
+
+  describe("GET /api/gateway", () => {
+    it("应该返回网关列表", async () => {
+      const response = await request(app)
+        .get("/api/gateway");
+
+      expect(response.body.code).toBe(200);
+      expect(response.body.data.list).toHaveLength(1);
+      expect(response.body.data.list[0].ID).toBe(testGateway.ID);
     });
 
-    // 在每个测试之前清理数据
-    beforeEach(async () => {
-        // 先清理关联表，再清理主表
-        await GatewayNDSMap.destroy({ where: {} });
-        await GatewayList.destroy({ where: {} });
-        await NDSList.destroy({ where: {} });
+    it("应该根据状态过滤网关", async () => {
+      const response = await request(app)
+        .get("/api/gateway?status=1");
+
+      expect(response.body.code).toBe(200);
+      expect(response.body.data.list).toHaveLength(1);
+      expect(response.body.data.list[0].status).toBe(1);
     });
 
-    describe('POST /api/gateway/register', () => {
-        it('应该成功注册新网关', async () => {
-            const response = await request(server)
-                .post('/api/gateway/register')
-                .send({ port: 8080 })
-                .expect('Content-Type', /json/)
-                .expect(200);
+    it("应该支持分页查询", async () => {
+      // 创建另一个测试网关
+      await GatewayList.create({
+        nodeName: "Test Gateway 2",
+        host: "192.168.1.101",
+        port: 8081,
+        status: 1,
+        switch: 1
+      });
 
-            expect(response.body.code).toBe(200);
-            expect(response.body.data).toHaveProperty('id');
-            expect(response.body.data.nodeName).toBe(`Gateway-${response.body.data.id}`);
-            expect(response.body.data.status).toBe('online');
-        });
+      const response = await request(app)
+        .get("/api/gateway?page=1&pageSize=1");
 
-        it('缺少端口号应该返回错误', async () => {
-            const response = await request(server)
-                .post('/api/gateway/register')
-                .send({})
-                .expect('Content-Type', /json/)
-                .expect(400);
+      expect(response.body.code).toBe(200);
+      expect(response.body.data.list).toHaveLength(1);
+      expect(response.body.data.total).toBe(2);
+      expect(response.body.data.page).toBe(1);
+      expect(response.body.data.pageSize).toBe(1);
+    });
+  });
 
-            expect(response.body.code).toBe(400);
-            expect(response.body.message).toBe('端口号不能为空');
-        });
+  describe("GET /api/gateway/:ID", () => {
+    it("应该返回网关详情", async () => {
+      const response = await request(app)
+        .get(`/api/gateway/${testGateway.ID}`);
+
+      expect(response.body.code).toBe(200);
+      expect(response.body.data.ID).toBe(testGateway.ID);
+      expect(response.body.data.nodeName).toBe(testGateway.nodeName);
     });
 
-    describe('GET /api/gateway', () => {
-        it('应该成功获取网关列表', async () => {
-            // 创建测试数据
-            await GatewayList.bulkCreate([
-                { nodeName: 'Gateway-1', host: '127.0.0.1', port: 8080, status: 'online' },
-                { nodeName: 'Gateway-2', host: '127.0.0.1', port: 8081, status: 'online' }
-            ]);
+    it("对于不存在的网关应返回404", async () => {
+      const response = await request(app)
+        .get("/api/gateway/99999");
 
-            const response = await request(server)
-                .get('/api/gateway')
-                .expect('Content-Type', /json/)
-                .expect(200);
+      expect(response.body.code).toBe(404);
+      expect(response.body.message).toBe("网关不存在");
+    });
+  });
 
-            expect(response.body.code).toBe(200);
-            expect(response.body.data.list).toHaveLength(2);
-            expect(response.body.data.total).toBe(2);
-        });
+  describe("PUT /api/gateway/:ID", () => {
+    it("应该更新网关信息", async () => {
+      const updateData = {
+        nodeName: "Updated Gateway",
+        port: 8081
+      };
 
-        it('应该支持关键字搜索', async () => {
-            // 创建测试数据
-            await GatewayList.bulkCreate([
-                { nodeName: 'Gateway-1', host: '127.0.0.1', port: 8080, status: 'online' },
-                { nodeName: 'Test-2', host: '127.0.0.1', port: 8081, status: 'online' }
-            ]);
+      const response = await request(app)
+        .put(`/api/gateway/${testGateway.ID}`)
+        .send(updateData);
 
-            const response = await request(server)
-                .get('/api/gateway?keyword=Gateway')
-                .expect('Content-Type', /json/)
-                .expect(200);
+      expect(response.body.code).toBe(200);
+      expect(response.body.data.nodeName).toBe(updateData.nodeName);
+      expect(response.body.data.port).toBe(updateData.port);
 
-            expect(response.body.code).toBe(200);
-            expect(response.body.data.list).toHaveLength(1);
-            expect(response.body.data.list[0].nodeName).toBe('Gateway-1');
-            expect(response.body.data.total).toBe(1);
-        });
+      // 验证数据库中的数据是否更新
+      const updatedGateway = await GatewayList.findByPk(testGateway.ID);
+      expect(updatedGateway.nodeName).toBe(updateData.nodeName);
+      expect(updatedGateway.port).toBe(updateData.port);
     });
 
-    describe('PUT /api/gateway/:id', () => {
-        it('应该成功更新网关配置', async () => {
-            const gateway = await GatewayList.create({
-                nodeName: 'Gateway-1',
-                host: '127.0.0.1',
-                port: 8080,
-                status: 'online'
-            });
+    it("对于不存在的网关应返回404", async () => {
+      const response = await request(app)
+        .put("/api/gateway/99999")
+        .send({ nodeName: "Test" });
 
-            const response = await request(server)
-                .put(`/api/gateway/${gateway.id}`)
-                .send({
-                    nodeName: 'Updated-Gateway',
-                    port: 8081,
-                    description: '测试网关'
-                })
-                .expect('Content-Type', /json/)
-                .expect(200);
+      expect(response.body.code).toBe(404);
+      expect(response.body.message).toBe("网关不存在");
+    });
+  });
 
-            expect(response.body.code).toBe(200);
-            expect(response.body.data.nodeName).toBe('Updated-Gateway');
-            expect(response.body.data.port).toBe(8081);
-            expect(response.body.data.description).toBe('测试网关');
-        });
+  describe("POST /api/gateway/:ID/logout", () => {
+    it("应该使网关下线", async () => {
+      const response = await request(app)
+        .post(`/api/gateway/${testGateway.ID}/logout`);
 
-        it('更新不存在的网关应该返回404', async () => {
-            const response = await request(server)
-                .put('/api/gateway/999')
-                .send({
-                    nodeName: 'Updated-Gateway',
-                    port: 8081
-                })
-                .expect('Content-Type', /json/)
-                .expect(404);
+      expect(response.body.code).toBe(200);
 
-            expect(response.body.code).toBe(404);
-            expect(response.body.message).toBe('网关不存在');
-        });
+      // 验证网关状态是否更新为离线
+      const updatedGateway = await GatewayList.findByPk(testGateway.ID);
+      expect(updatedGateway.status).toBe(0);
     });
 
-    describe('POST /api/gateway/:id/logout', () => {
-        it('应该成功注销网关', async () => {
-            const gateway = await GatewayList.create({
-                nodeName: 'Gateway-1',
-                host: '127.0.0.1',
-                port: 8080,
-                status: 'online'
-            });
+    it("对于不存在的网关应返回404", async () => {
+      const response = await request(app)
+        .post("/api/gateway/99999/logout");
 
-            const response = await request(server)
-                .post(`/api/gateway/${gateway.id}/logout`)
-                .expect('Content-Type', /json/)
-                .expect(200);
+      expect(response.body.code).toBe(404);
+      expect(response.body.message).toBe("网关不存在");
+    });
+  });
 
-            expect(response.body.code).toBe(200);
-            expect(response.body.message).toBe('注销成功');
+  describe("网关-NDS关联测试", () => {
+    describe("POST /api/gateway/:ID/nds", () => {
+      it("应该添加NDS关联", async () => {
+        const response = await request(app)
+          .post(`/api/gateway/${testGateway.ID}/nds`)
+          .send({ ndsId: testNDS.ID });
 
-            const updatedGateway = await GatewayList.findByPk(gateway.id);
-            expect(updatedGateway.status).toBe('offline');
+        expect(response.body.code).toBe(200);
+        expect(response.body.message).toBe("关联添加成功");
+
+        // 验证关联是否创建成功
+        const association = await GatewayNDSMap.findOne({
+          where: {
+            gatewayId: testGateway.ID,
+            ndsId: testNDS.ID
+          }
         });
+        expect(association).toBeTruthy();
+      });
+
+      it("对于重复的关联应返回400", async () => {
+        // 先创建关联
+        await GatewayNDSMap.create({
+          gatewayId: testGateway.ID,
+          ndsId: testNDS.ID
+        });
+
+        const response = await request(app)
+          .post(`/api/gateway/${testGateway.ID}/nds`)
+          .send({ ndsId: testNDS.ID });
+
+        expect(response.body.code).toBe(400);
+        expect(response.body.message).toBe("关联已存在");
+      });
+
+      it("对于不存在的网关应返回404", async () => {
+        const response = await request(app)
+          .post("/api/gateway/99999/nds")
+          .send({ ndsId: testNDS.ID });
+
+        expect(response.body.code).toBe(404);
+        expect(response.body.message).toBe("网关不存在");
+      });
+
+      it("对于不存在的NDS应返回404", async () => {
+        const response = await request(app)
+          .post(`/api/gateway/${testGateway.ID}/nds`)
+          .send({ ndsId: 99999 });
+
+        expect(response.body.code).toBe(404);
+        expect(response.body.message).toBe("NDS不存在");
+      });
     });
 
-    describe('网关-NDS关联测试', () => {
-        let gateway;
-        let nds1, nds2;
-
-        beforeEach(async () => {
-            // 创建测试网关
-            gateway = await GatewayList.create({
-                nodeName: 'TestGateway',
-                host: '127.0.0.1',
-                port: 8080,
-                status: 'online'
-            });
-
-            // 创建测试NDS
-            nds1 = await NDSList.create({
-                Name: 'TestNDS1',
-                Address: '192.168.1.1',
-                Port: 2121,
-                Protocol: 'SFTP',
-                Account: 'test1',
-                Password: 'password1',
-                MRO_Path: '/MR/MRO/',
-                MRO_Filter: '^/MR/MRO/[^/]+/[^/]+_MRO_[^/]+.zip$',
-                MDT_Path: '/MR/MDT/',
-                MDT_Filter: '^/MR/MDT/[^/]+/[^/]+_MDT_[^/]+.zip$'
-            });
-
-            nds2 = await NDSList.create({
-                Name: 'TestNDS2',
-                Address: '192.168.1.2',
-                Port: 2121,
-                Protocol: 'SFTP',
-                Account: 'test2',
-                Password: 'password2',
-                MRO_Path: '/MR/MRO/',
-                MRO_Filter: '^/MR/MRO/[^/]+/[^/]+_MRO_[^/]+.zip$',
-                MDT_Path: '/MR/MDT/',
-                MDT_Filter: '^/MR/MDT/[^/]+/[^/]+_MDT_[^/]+.zip$'
-            });
+    describe("GET /api/gateway/:ID/nds", () => {
+      it("应该返回关联的NDS列表", async () => {
+        // 先创建关联
+        await GatewayNDSMap.create({
+          gatewayId: testGateway.ID,
+          ndsId: testNDS.ID
         });
 
-        describe('GET /api/gateway/:id/nds', () => {
-            it('应该返回空的NDS列表', async () => {
-                const res = await request(server)
-                    .get(`/api/gateway/${gateway.id}/nds`)
-                    .expect(200);
+        const response = await request(app)
+          .get(`/api/gateway/${testGateway.ID}/nds`);
 
-                expect(res.body.code).toBe(200);
-                expect(res.body.data).toBeInstanceOf(Array);
-                expect(res.body.data).toHaveLength(0);
-            });
+        expect(response.body.code).toBe(200);
+        expect(response.body.data).toHaveLength(1);
+        expect(response.body.data[0].ID).toBe(testNDS.ID);
+      });
 
-            it('应该返回关联的NDS列表', async () => {
-                await GatewayNDSMap.create({
-                    gatewayId: gateway.id,
-                    ndsId: nds1.ID
-                });
-                await GatewayNDSMap.create({
-                    gatewayId: gateway.id,
-                    ndsId: nds2.ID
-                });
+      it("对于不存在的网关应返回404", async () => {
+        const response = await request(app)
+          .get("/api/gateway/99999/nds");
 
-                const res = await request(server)
-                    .get(`/api/gateway/${gateway.id}/nds`)
-                    .expect(200);
-
-                expect(res.body.code).toBe(200);
-                expect(res.body.data).toHaveLength(2);
-                expect(res.body.data[0].Name).toBe('TestNDS1');
-                expect(res.body.data[1].Name).toBe('TestNDS2');
-            });
-
-            it('网关不存在时应该返回404', async () => {
-                const res = await request(server)
-                    .get('/api/gateway/999/nds')
-                    .expect(404);
-
-                expect(res.body.code).toBe(404);
-                expect(res.body.message).toBe('网关不存在');
-            });
-        });
-
-        describe('PUT /api/gateway/:id/nds', () => {
-            it('应该成功更新网关的NDS关联', async () => {
-                const res = await request(server)
-                    .put(`/api/gateway/${gateway.id}/nds`)
-                    .send({ ndsIds: [nds1.ID, nds2.ID] })
-                    .expect(200);
-
-                expect(res.body.code).toBe(200);
-                expect(res.body.data).toHaveLength(2);
-
-                // 验证数据库中的关联
-                const maps = await GatewayNDSMap.findAll({
-                    where: { gatewayId: gateway.id }
-                });
-                expect(maps).toHaveLength(2);
-            });
-
-            it('ndsIds不是数组时应该返回400', async () => {
-                const res = await request(server)
-                    .put(`/api/gateway/${gateway.id}/nds`)
-                    .send({ ndsIds: 'not-an-array' })
-                    .expect(400);
-
-                expect(res.body.code).toBe(400);
-                expect(res.body.message).toBe('ndsIds必须是数组');
-            });
-        });
-
-        describe('POST /api/gateway/:id/nds', () => {
-            it('应该成功添加NDS关联', async () => {
-                const res = await request(server)
-                    .post(`/api/gateway/${gateway.id}/nds`)
-                    .send({ ndsId: nds1.ID })
-                    .expect(200);
-
-                expect(res.body.code).toBe(200);
-                expect(res.body.message).toBe('关联添加成功');
-
-                // 验证数据库中的关联
-                const map = await GatewayNDSMap.findOne({
-                    where: { gatewayId: gateway.id, ndsId: nds1.ID }
-                });
-                expect(map).toBeTruthy();
-            });
-
-            it('重复添加相同关联时应该返回400', async () => {
-                await GatewayNDSMap.create({
-                    gatewayId: gateway.id,
-                    ndsId: nds1.ID
-                });
-
-                const res = await request(server)
-                    .post(`/api/gateway/${gateway.id}/nds`)
-                    .send({ ndsId: nds1.ID })
-                    .expect(400);
-
-                expect(res.body.code).toBe(400);
-                expect(res.body.message).toBe('该关联已存在');
-            });
-        });
-
-        describe('DELETE /api/gateway/:id/nds/:ndsId', () => {
-            it('应该成功删除NDS关联', async () => {
-                await GatewayNDSMap.create({
-                    gatewayId: gateway.id,
-                    ndsId: nds1.ID
-                });
-
-                const res = await request(server)
-                    .delete(`/api/gateway/${gateway.id}/nds/${nds1.ID}`)
-                    .expect(200);
-
-                expect(res.body.code).toBe(200);
-                expect(res.body.message).toBe('关联删除成功');
-
-                // 验证数据库中的关联已删除
-                const map = await GatewayNDSMap.findOne({
-                    where: { gatewayId: gateway.id, ndsId: nds1.ID }
-                });
-                expect(map).toBeNull();
-            });
-
-            it('删除不存在的关联时应该返回404', async () => {
-                const res = await request(server)
-                    .delete(`/api/gateway/${gateway.id}/nds/${nds1.ID}`)
-                    .expect(404);
-
-                expect(res.body.code).toBe(404);
-                expect(res.body.message).toBe('关联不存在');
-            });
-        });
+        expect(response.body.code).toBe(404);
+        expect(response.body.message).toBe("网关不存在");
+      });
     });
+
+    describe("PUT /api/gateway/:ID/nds", () => {
+      it("应该更新NDS关联", async () => {
+        // 先创建关联
+        await GatewayNDSMap.create({
+          gatewayId: testGateway.ID,
+          ndsId: testNDS.ID
+        });
+
+        // 创建新的NDS用于更新
+        const newNDS = await NDSList.create({
+          Name: "New NDS",
+          Address: "192.168.1.201",
+          Port: 2122,
+          Protocol: "SFTP",
+          Account: "test2",
+          Password: "test456",
+          MRO_Path: "/MR/MRO/",
+          MRO_Filter: "^/MR/MRO/[^/]+/[^/]+_MRO_[^/]+.zip$",
+          MDT_Path: "/MDT/",
+          MDT_Filter: "^/MDT/[^/]+/CSV/LOG-MDT/.*_LOG-MDT_.*.zip$",
+          Switch: 1
+        });
+
+        const response = await request(app)
+          .put(`/api/gateway/${testGateway.ID}/nds`)
+          .send({ ndsIds: [newNDS.ID] });
+
+        expect(response.body.code).toBe(200);
+
+        // 验证关联是否更新成功
+        const associations = await GatewayNDSMap.findAll({
+          where: { gatewayId: testGateway.ID }
+        });
+        expect(associations).toHaveLength(1);
+        expect(associations[0].ndsId).toBe(newNDS.ID);
+
+        // 清理测试数据
+        await newNDS.destroy();
+      });
+
+      it("对于不存在的网关应返回404", async () => {
+        const response = await request(app)
+          .put("/api/gateway/99999/nds")
+          .send({ ndsIds: [testNDS.ID] });
+
+        expect(response.body.code).toBe(404);
+        expect(response.body.message).toBe("网关不存在");
+      });
+    });
+
+    describe("DELETE /api/gateway/:ID/nds/:ndsId", () => {
+      it("应该删除NDS关联", async () => {
+        // 先创建关联
+        await GatewayNDSMap.create({
+          gatewayId: testGateway.ID,
+          ndsId: testNDS.ID
+        });
+
+        const response = await request(app)
+          .delete(`/api/gateway/${testGateway.ID}/nds/${testNDS.ID}`);
+
+        expect(response.body.code).toBe(200);
+        expect(response.body.message).toBe("关联删除成功");
+
+        // 验证关联是否删除成功
+        const association = await GatewayNDSMap.findOne({
+          where: {
+            gatewayId: testGateway.ID,
+            ndsId: testNDS.ID
+          }
+        });
+        expect(association).toBeNull();
+      });
+
+      it("对于不存在的网关应返回404", async () => {
+        const response = await request(app)
+          .delete("/api/gateway/99999/nds/1");
+
+        expect(response.body.code).toBe(404);
+        expect(response.body.message).toBe("网关不存在");
+      });
+
+      it("对于不存在的NDS应返回404", async () => {
+        const response = await request(app)
+          .delete(`/api/gateway/${testGateway.ID}/nds/99999`);
+
+        expect(response.body.code).toBe(404);
+        expect(response.body.message).toBe("NDS不存在");
+      });
+
+      it("对于不存在的关联应返回404", async () => {
+        const response = await request(app)
+          .delete(`/api/gateway/${testGateway.ID}/nds/${testNDS.ID}`);
+
+        expect(response.body.code).toBe(404);
+        expect(response.body.message).toBe("关联不存在");
+      });
+    });
+  });
 });

@@ -9,6 +9,8 @@
     "stop": "pm2 stop mparser-center",
     "restart": "pm2 restart mparser-center",
     "dev": "pm2 start ecosystem.config.js --no-daemon",
+    "status": "pm2 status",
+    "delete": "pm2 delete mparser-center",
     "lint": "eslint .",
     "test": "jest --config jest.config.js",
     "test:watch": "jest --config jest.config.js --watch",
@@ -36,7 +38,7 @@
     "@babel/plugin-transform-template-literals": "^7.25.9",
     "@babel/preset-env": "^7.26.0",
     "babel-jest": "^29.7.0",
-    "eslint": "^8.56.0",
+    "eslint": "^9.18.0",
     "jest": "^29.7.0",
     "nodemon": "^3.0.2",
     "supertest": "^7.0.0"
@@ -44,7 +46,11 @@
   "jest": {
     "collectCoverage": true,
     "coverageDirectory": "coverage",
-    "coverageReporters": ["html", "text", "lcov"],
+    "coverageReporters": [
+      "html",
+      "text",
+      "lcov"
+    ],
     "collectCoverageFrom": [
       "src/**/*.js",
       "!src/config/**",
