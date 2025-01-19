@@ -8,14 +8,18 @@ module.exports = {
   ],
   
   // 覆盖率收集配置
+  collectCoverage: true,
   collectCoverageFrom: [
     'src/**/*.js',
     '!src/__test__/**',
-    '!src/docs/**'
+    '!src/docs/**',
+    '!src/config/**',
+    '!**/node_modules/**'
   ],
   
-  // 覆盖率报告目录
+  // 覆盖率报告配置
   coverageDirectory: 'coverage',
+  coverageReporters: ['html', 'text', 'lcov'],
   
   // 在每次测试前清理模拟调用和实例
   clearMocks: true,

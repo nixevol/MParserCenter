@@ -74,7 +74,7 @@ const addCell = async (req, res) => {
         });
 
         if (existingRecord) {
-            return res.status(400).json(error('CGI已存在,不能重复添加'));
+            return res.status(400).json(error('CGI已存在,不能重复添加', 400));
         }
 
         await CellData.create(data);

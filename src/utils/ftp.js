@@ -11,6 +11,10 @@ const logger = require('./logger');
  * @returns {Promise<Object>} 测试结果
  */
 const testFTPConnection = async (config) => {
+  if (!config || !config.Address || !config.Port || !config.Account || !config.Password) {
+    return { isConnected: false, message: '无效的配置' };
+  }
+
   const client = new ftp.Client();
   client.ftp.verbose = false;
 
@@ -44,6 +48,10 @@ const testFTPConnection = async (config) => {
  * @returns {Promise<Object>} 测试结果
  */
 const testSFTPConnection = async (config) => {
+  if (!config || !config.Address || !config.Port || !config.Account || !config.Password) {
+    return { isConnected: false, message: '无效的配置' };
+  }
+
   return new Promise((resolve) => {
     const conn = new Client();
 
@@ -58,6 +66,11 @@ const testSFTPConnection = async (config) => {
         const paths = [config.MRO_Path, config.MDT_Path].filter(Boolean);
         let checkedPaths = 0;
 
+        if (paths.length === 0) {
+          conn.end();
+          return resolve({ isConnected: true, message: '连接成功' });
+        }
+
         paths.forEach(path => {
           sftp.readdir(path, (err) => {
             checkedPaths++;
@@ -71,12 +84,6 @@ const testSFTPConnection = async (config) => {
             }
           });
         });
-
-        // 如果没有路径需要检查
-        if (paths.length === 0) {
-          conn.end();
-          resolve({ isConnected: true, message: '连接成功' });
-        }
       });
     });
 
@@ -100,15 +107,18 @@ const testSFTPConnection = async (config) => {
  * @returns {Promise<Object>} 测试结果
  */
 const testConnection = async (config) => {
-  try {
-    if (config.Protocol === 'SFTP') {
-      return await testSFTPConnection(config);
-    } else {
-      return await testFTPConnection(config);
-    }
-  } catch (err) {
-    logger.error('连接测试失败:', err);
-    return { isConnected: false, message: err.message };
+  if (!config) {
+    return { isConnected: false, message: '无效的配置' };
+  }
+
+  const type = config.Type || '';
+  switch (type.toUpperCase()) {
+    case 'FTP':
+      return testFTPConnection(config);
+    case 'SFTP':
+      return testSFTPConnection(config);
+    default:
+      return { isConnected: false, message: '不支持的连接类型: ' + type };
   }
 };
 

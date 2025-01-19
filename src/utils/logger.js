@@ -13,8 +13,18 @@ const LOG_LEVELS = {
   debug: 3
 };
 
-// 获取当前配置的日志级别
-const currentLevel = LOG_LEVELS[config.env.logLevel || 'info'];
+/**
+ * 获取当前配置的日志级别
+ * @returns {number} 日志级别数值
+ */
+const getLogLevel = () => {
+  const configLevel = config.env.logLevel;
+  if (!configLevel || typeof configLevel !== 'string') {
+    return LOG_LEVELS.info;
+  }
+  const level = configLevel.toLowerCase();
+  return LOG_LEVELS[level] !== undefined ? LOG_LEVELS[level] : LOG_LEVELS.info;
+};
 
 /**
  * 检查是否应该记录该级别的日志
@@ -22,17 +32,31 @@ const currentLevel = LOG_LEVELS[config.env.logLevel || 'info'];
  * @returns {boolean} 是否应该记录
  */
 const shouldLog = (level) => {
+  const currentLevel = getLogLevel();
   return LOG_LEVELS[level] <= currentLevel;
+};
+
+/**
+ * 格式化参数为字符串
+ * @param {*} arg 参数
+ * @returns {string} 格式化后的字符串
+ */
+const formatArg = (arg) => {
+  if (arg === undefined) return 'undefined';
+  if (arg === null) return 'null';
+  if (typeof arg === 'symbol') return arg.toString();
+  return String(arg);
 };
 
 /**
  * 格式化日志消息
  * @param {string} level 日志级别
- * @param {string} message 日志消息
+ * @param {Array} args 日志参数
  * @returns {string} 格式化后的日志
  */
-const formatLog = (level, message) => {
+const formatLog = (level, args) => {
   const timestamp = new Date().toISOString();
+  const message = args.map(formatArg).join(' ');
   return `[${timestamp}] [${level.toUpperCase()}] ${message}`;
 };
 
@@ -40,25 +64,25 @@ const formatLog = (level, message) => {
 const logger = {
   error: (...args) => {
     if (shouldLog('error')) {
-      console.error(formatLog('error', args.join(' ')));
+      console.error(formatLog('error', args));
     }
   },
 
   warn: (...args) => {
     if (shouldLog('warn')) {
-      console.warn(formatLog('warn', args.join(' ')));
+      console.warn(formatLog('warn', args));
     }
   },
 
   info: (...args) => {
     if (shouldLog('info')) {
-      console.info(formatLog('info', args.join(' ')));
+      console.info(formatLog('info', args));
     }
   },
 
   debug: (...args) => {
     if (shouldLog('debug')) {
-      console.debug(formatLog('debug', args.join(' ')));
+      console.debug(formatLog('debug', args));
     }
   }
 };

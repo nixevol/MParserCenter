@@ -14,17 +14,13 @@ const sequelize = new Sequelize(
     host: config.database.host,
     port: config.database.port,
     dialect: "mysql",
-    timezone: "+08:00",  // 设置东八区时区
-    logging: (msg) => {
-      if (config.env.isDev) {
-        logger.debug(msg);
-      }
-    },
+    timezone: "+08:00", // 设置东八区时区
+    logging: config.env.isDev ? (sql) => logger.debug(sql) : false,
     pool: {
-      max: parseInt(process.env.DB_POOL_MAX || "200"),
-      min: parseInt(process.env.DB_POOL_MIN || "0"),
-      acquire: parseInt(process.env.DB_POOL_ACQUIRE || "30000"),
-      idle: parseInt(process.env.DB_POOL_IDLE || "10000")
+      max: parseInt((config.database.pool || {}).max || "200"),
+      min: parseInt((config.database.pool || {}).min || "0"),
+      acquire: parseInt((config.database.pool || {}).acquire || "30000"),
+      idle: parseInt((config.database.pool || {}).idle || "10000")
     },
     retry: {
       max: 3,
@@ -36,24 +32,28 @@ const sequelize = new Sequelize(
       underscored: false, // 禁用下划线命名转换
       timestamps: true, // 自动添加 createdAt 和 updatedAt
       freezeTableName: true, // 禁止表名自动复数化
-      paranoid: false, // 禁用软删除
+      paranoid: false // 禁用软删除
     }
   }
 );
 
 /**
  * 测试数据库连接
+ * @throws {Error} 如果连接失败
  */
 const testConnection = async () => {
   try {
     await sequelize.authenticate();
     logger.info('数据库连接成功');
 
-    // 重置连接状态
-    await sequelize.query('SET SESSION transaction_prealloc_size = 0;', { raw: true })
-      .catch(err => {
-        logger.warn('重置连接状态时出错（可忽略）:', err.message);
+    try {
+      // 重置连接状态
+      await sequelize.query("SET SESSION transaction_prealloc_size = 0;", {
+        raw: true
       });
+    } catch (err) {
+      logger.warn("重置连接状态时出错（可忽略）:", err.message);
+    }
 
     // 同步所有模型到数据库
     await sequelize.sync();
@@ -61,7 +61,7 @@ const testConnection = async () => {
 
   } catch (error) {
     logger.error('数据库连接失败:', error);
-    throw error;
+    throw new Error("连接失败");
   }
 };
 

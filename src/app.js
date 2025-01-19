@@ -34,12 +34,12 @@ const swaggerOptions = {
             version: '1.0.0',
             description: 'MParser Center API文档'
         },
-        servers: [
-            {
-                url: 'http://localhost:9002',
-                description: '开发服务器'
-            }
-        ]
+        // servers: [
+        //     {
+        //         url: `http://localhost:${process.env.PORT}`,
+        //         description: '开发服务器'
+        //     }
+        // ]
     },
     apis: ['./src/docs/swagger/*.js']
 };
@@ -52,6 +52,15 @@ app.use("/", require("./routes/app.route"));
 app.use("/api/cell", require("./routes/celldata.route"));
 app.use('/api/task', require('./routes/task.route'));
 app.use('/api/nds', require('./routes/nds.route'));
+app.use("/api/gateway", require("./routes/gateway.route"));
+
+// 健康检查路由
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        timestamp: Date.now()
+    });
+});
 
 // 错误处理中间件
 app.use((err, req, res, next) => {
@@ -65,19 +74,47 @@ app.use((err, req, res, next) => {
 
 // 启动服务器
 const PORT = process.env.PORT || 9002;
+let server = null;
+
 const startServer = async () => {
     try {
         // 测试数据库连接
         await testConnection();
 
         // 启动HTTP服务器
-        app.listen(PORT, () => {
-            logger.info(`服务器已启动，监听端口 ${PORT}`);
-            logger.info(`API文档地址: http://localhost:${PORT}/api-docs`);
+        return new Promise((resolve, reject) => {
+            server = app.listen(PORT, () => {
+                logger.info(`服务器已启动，监听端口 ${PORT}`);
+                logger.info(`API文档地址: http://localhost:${PORT}/api-docs`);
+                resolve(server);
+            });
+
+            server.on('error', (err) => {
+                if (err.code === 'EADDRINUSE') {
+                    // 如果端口被占用，尝试使用随机端口
+                    server = app.listen(0, () => {
+                        logger.info(`服务器已启动，监听端口 ${server.address().port}`);
+                        resolve(server);
+                    });
+                } else {
+                    reject(err);
+                }
+            });
         });
     } catch (err) {
         logger.error('服务器启动失败:', err);
         process.exit(1);
+    }
+};
+
+const stopServer = async () => {
+    if (server) {
+        return new Promise((resolve) => {
+            server.close(() => {
+                server = null;
+                resolve();
+            });
+        });
     }
 };
 
@@ -86,4 +123,8 @@ if (require.main === module) {
     startServer();
 }
 
-module.exports = app;
+module.exports = {
+    app,
+    startServer,
+    stopServer
+};

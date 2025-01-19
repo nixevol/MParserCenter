@@ -5,15 +5,14 @@
   "main": "src/app.js",
   "license": "MIT",
   "scripts": {
-    "prestart": "node init.js",
-    "start": "pm2 start ecosystem.config.js",
+    "start": "node src/app.js",
     "stop": "pm2 stop mparser-center",
     "restart": "pm2 restart mparser-center",
     "dev": "pm2 start ecosystem.config.js --no-daemon",
     "lint": "eslint .",
-    "test": "jest",
-    "test:coverage": "jest --coverage",
-    "test:watch": "jest --watch"
+    "test": "jest --config jest.config.js",
+    "test:watch": "jest --config jest.config.js --watch",
+    "coverage": "jest --config jest.config.js && start coverage/lcov-report/index.html"
   },
   "dependencies": {
     "basic-ftp": "^5.0.5",
@@ -21,7 +20,7 @@
     "cross-env": "^7.0.3",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "express-fileupload": "^1.4.3",
+    "express-fileupload": "^1.5.1",
     "morgan": "^1.10.0",
     "mysql2": "^3.6.5",
     "pm2": "^5.4.3",
@@ -41,5 +40,16 @@
     "jest": "^29.7.0",
     "nodemon": "^3.0.2",
     "supertest": "^7.0.0"
+  },
+  "jest": {
+    "collectCoverage": true,
+    "coverageDirectory": "coverage",
+    "coverageReporters": ["html", "text", "lcov"],
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/config/**",
+      "!src/__test__/**",
+      "!**/node_modules/**"
+    ]
   }
 }
